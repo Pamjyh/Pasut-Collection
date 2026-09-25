@@ -1,5 +1,13 @@
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
 
+@font-face{
+  font-family:'MatchasomDemo';
+  src: url('fonts/MatchasomDemo.ttf') format('truetype');
+  font-weight: normal;
+  font-style: normal;
+  font-display: swap;
+}
+
 :root{
   --primary:#0075de;
   --primary-active:#005bab;
@@ -47,7 +55,7 @@ body{
   font-family:'Inter',-apple-system,system-ui,"Segoe UI",sans-serif;
   line-height:1.5; -webkit-font-smoothing:antialiased;
 }
-h1,h2,h3{ font-weight:700; letter-spacing:-.02em; text-wrap:balance; margin:0; }
+h1,h2,h3{ font-family:'MatchasomDemo','Inter',-apple-system,system-ui,sans-serif; font-weight:700; letter-spacing:-.02em; text-wrap:balance; margin:0; }
 .num{ font-variant-numeric:tabular-nums; }
 a{ color:var(--primary); text-decoration:none; }
 img{ max-width:100%; }
@@ -62,7 +70,7 @@ img{ max-width:100%; }
   border-bottom:1px solid var(--hairline);
 }
 .topbar .row{ display:flex; align-items:center; justify-content:space-between; gap:16px; padding-block:14px; flex-wrap:wrap; }
-.brand{ display:flex; align-items:center; gap:10px; font-weight:700; font-size:15px; color:var(--ink); text-decoration:none; }
+.brand{ display:flex; align-items:center; gap:10px; font-family:'MatchasomDemo','Inter',sans-serif; font-weight:700; font-size:17px; color:var(--ink); text-decoration:none; }
 .brand .mark{
   width:26px;height:26px;border-radius:8px;
   background:var(--primary); color:var(--on-primary);
