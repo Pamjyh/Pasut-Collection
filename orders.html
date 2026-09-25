@@ -30,9 +30,14 @@
   </section>
 
   <section style="padding-top:0;">
-    <p class="empty-note">ยังไม่มีคำสั่งมอบหมายงาน — เพิ่มการ์ดใหม่ได้โดยคัดลอกโครงสร้าง <code>.gcard</code> จากไฟล์ media.html แล้วใส่รูปสแกน/ถ่ายภาพคำสั่งลงในโฟลเดอร์ images/</p>
+    <div id="cardMount"
+         data-collection="orders"
+         data-empty="ยังไม่มีคำสั่งมอบหมายงาน กดปุ่ม “แก้ไขหน้านี้” มุมล่างขวา แล้วเพิ่มรายการแรกได้เลย"
+         data-fields='[{"key":"title","label":"ชื่อคำสั่ง / เรื่อง"},{"key":"date","label":"เลขที่คำสั่ง / วันที่"}]'></div>
   </section>
 </main>
 
+<script src="config.js"></script>
+<script src="edit.js"></script>
 </body>
 </html>

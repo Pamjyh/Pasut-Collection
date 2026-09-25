@@ -228,6 +228,31 @@ section .intro{ color:var(--ink-muted); max-width:68ch; margin-bottom:28px; font
 .gcard .cap{ font-size:13px; color:var(--ink-muted); white-space:pre-line; }
 .empty-note{ color:var(--ink-faint); font-size:14px; text-align:center; padding:32px 0; border:1px dashed var(--hairline); border-radius:12px; }
 
+/* ---------- self-editing (edit.js) ---------- */
+.edit-toggle{
+  position:fixed; right:16px; bottom:calc(16px + env(safe-area-inset-bottom,0px));
+  z-index:40; font-family:'Inter',sans-serif; font-size:14px; font-weight:600;
+  padding:11px 18px; border-radius:999px; border:none; color:#fff;
+  background:var(--primary); box-shadow:var(--shadow-2); cursor:pointer;
+}
+.edit-controls{ display:flex; gap:6px; padding:0 16px 14px; flex-wrap:wrap; }
+.edit-controls button{ font-size:12px; padding:5px 10px; border-radius:8px; border:1px solid var(--hairline); background:var(--canvas-soft); color:var(--ink); cursor:pointer; }
+.edit-controls button:disabled{ opacity:.35; cursor:default; }
+.edit-controls .btn-del{ margin-left:auto; color:var(--orange); }
+.btn-add{ font-size:14px; font-weight:600; padding:10px 18px; border-radius:10px; border:1px dashed var(--primary); background:transparent; color:var(--primary); cursor:pointer; }
+
+.pc-modal-overlay{ position:fixed; inset:0; background:rgba(0,0,0,.45); z-index:50; display:flex; align-items:center; justify-content:center; padding:20px; }
+.pc-modal{ background:var(--surface); border-radius:12px; padding:24px; width:100%; max-width:420px; max-height:90vh; overflow-y:auto; box-shadow:var(--shadow-2); }
+.pc-modal h3{ margin:0 0 16px; font-size:18px; }
+.pc-modal label{ display:block; font-size:13px; color:var(--ink-muted); margin-bottom:14px; }
+.pc-modal input[type="text"], .pc-modal textarea, .pc-modal input[type="file"]{
+  display:block; width:100%; margin-top:6px; padding:8px 10px; border:1px solid var(--hairline);
+  border-radius:8px; font-family:inherit; font-size:14px; color:var(--ink); background:var(--canvas);
+}
+.pc-modal textarea{ min-height:80px; resize:vertical; }
+.pc-modal-actions{ display:flex; gap:10px; margin-top:8px; }
+.pc-modal-actions button:last-child{ background:transparent; border:1px solid var(--hairline); border-radius:10px; padding:10px 18px; font-size:14px; cursor:pointer; color:var(--ink-muted); }
+
 /* ---------- footer ---------- */
 footer{ padding-block:44px 60px; }
 .signoff{ display:grid; grid-template-columns:1fr; gap:20px; background:var(--surface); border:1px solid var(--hairline); border-radius:12px; padding:26px; }

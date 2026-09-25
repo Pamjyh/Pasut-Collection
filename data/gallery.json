@@ -1,0 +1,5 @@
+[
+  { "id": "g1", "caption": "ห้องเรียนจริงขณะใช้เกมเดชศาสตร์อนันต์", "url": "images/classroom.jpg", "order": 1 },
+  { "id": "g2", "caption": "บรรยากาศการเรียนรู้ในชั้นเรียน", "url": "images/classroom-2.jpg", "order": 2 },
+  { "id": "g3", "caption": "กิจกรรมในชั้นเรียน", "url": "images/classroom-3.jpg", "order": 3 }
+]

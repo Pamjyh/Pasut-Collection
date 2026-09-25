@@ -1,0 +1,6 @@
+[
+  { "id": "m1", "title": "เดชศาสตร์อนันต์", "description": "เกมการศึกษาฝึกความคล่องแคล่วในการคิดคำนวณ บวก ลบ คูณ หาร พัฒนาด้วย HTML5 Canvas, JavaScript และ Firebase สำหรับนักเรียนชั้นประถมศึกษาปีที่ 4-6", "url": "images/hero-splash.jpg", "order": 1 },
+  { "id": "m2", "title": "แผนที่ 60 ด่าน", "description": "โครงสร้างเนื้อหาเกม แบ่งเป็น 60 ด่าน ไต่ระดับความยากตามตัวชี้วัดคณิตศาสตร์ ป.4-6", "url": "images/floor-select.jpg", "order": 2 },
+  { "id": "m3", "title": "Teacher Dashboard", "description": "ระบบติดตามผลการเรียนรู้รายบุคคล วิเคราะห์จุดอ่อนรายปฏิบัติการ (บวก ลบ คูณ หาร) ของนักเรียนแต่ละคน", "url": "images/teacher-dashboard.jpg", "order": 3 },
+  { "id": "m4", "title": "ตัวละครวีรบุรุษสี่ธาตุ", "description": "ตัวละครจากตำนานไทย (เทวดา หนุมาน นาค ครุฑ) ผูกกับธาตุ ไฟ น้ำ ฟ้า ลม แทนการบวก ลบ คูณ หาร", "url": "images/character-select.jpg", "order": 4 }
+]

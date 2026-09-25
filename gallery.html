@@ -30,22 +30,14 @@
   </section>
 
   <section style="padding-top:0;">
-    <div class="cardgrid">
-      <div class="gcard">
-        <div class="photo"><img src="images/classroom.jpg" alt="ห้องเรียนจริงขณะใช้เกมเดชศาสตร์อนันต์"></div>
-        <div class="body"><div class="cap">ห้องเรียนจริงขณะใช้เกมเดชศาสตร์อนันต์</div></div>
-      </div>
-      <div class="gcard">
-        <div class="photo"><img src="images/classroom-2.jpg" alt="บรรยากาศการเรียนรู้ในชั้นเรียน"></div>
-        <div class="body"><div class="cap">บรรยากาศการเรียนรู้ในชั้นเรียน</div></div>
-      </div>
-      <div class="gcard">
-        <div class="photo"><img src="images/classroom-3.jpg" alt="กิจกรรมในชั้นเรียน"></div>
-        <div class="body"><div class="cap">กิจกรรมในชั้นเรียน</div></div>
-      </div>
-    </div>
+    <div id="cardMount"
+         data-collection="gallery"
+         data-empty="ยังไม่มีภาพกิจกรรม กดปุ่ม “แก้ไขหน้านี้” มุมล่างขวา แล้วเพิ่มภาพแรกได้เลย"
+         data-fields='[{"key":"caption","label":"คำบรรยายภาพ"}]'></div>
   </section>
 </main>
 
+<script src="config.js"></script>
+<script src="edit.js"></script>
 </body>
 </html>
