@@ -101,12 +101,23 @@
     if (!el) return;
     const collection = 'site';
     let doc = { id: 'brand', name: el.textContent.trim() };
+    let userIsEditing = false;
+
+    // the editable span sits inside <a class="brand" href="index.html">;
+    // without this, clicking it to place a cursor navigates away first
+    const link = el.closest('a');
+    if (link) {
+      link.addEventListener('click', (e) => { if (editing) e.preventDefault(); });
+    }
 
     function refresh() {
       el.contentEditable = editing ? 'true' : 'false';
     }
     onToggle(refresh);
     refresh();
+
+    el.addEventListener('focus', () => { userIsEditing = true; });
+    el.addEventListener('blur', () => { userIsEditing = false; });
 
     let saveTimer = null;
     el.addEventListener('input', () => {
@@ -123,7 +134,8 @@
       .then((r) => r.json())
       .then((items) => {
         const found = items.filter((x) => x.id === 'brand')[0];
-        if (found) { doc = found; el.textContent = found.name; }
+        // don't clobber text the owner is actively typing when this resolves
+        if (found && !userIsEditing) { doc = found; el.textContent = found.name; }
       })
       .catch(() => {});
   }
@@ -288,10 +300,14 @@
   function mountBlocks(mount) {
     const collection = mount.dataset.collection;
     const jsonPath = 'data/' + collection + '.json';
+    const section = mount.closest('section');
     let items = [];
 
     function render() {
       mount.innerHTML = '';
+      // hide the whole "เนื้อหาเพิ่มเติม" section when there's nothing to show
+      // and the owner isn't editing, instead of leaving an empty heading visible
+      if (section) section.style.display = (!items.length && !editing) ? 'none' : '';
       const sorted = items.slice().sort((a, b) => (a.order || 0) - (b.order || 0));
       sorted.forEach((item, idx, arr) => {
         const block = document.createElement('div');
