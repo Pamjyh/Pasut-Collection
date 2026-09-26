@@ -25,7 +25,12 @@
 const GITHUB_OWNER = 'Pamjyh';
 const GITHUB_REPO = 'Pasut-Collection';
 const GITHUB_BRANCH = 'main';
-const ALLOWED_COLLECTIONS = ['gallery', 'media', 'orders'];
+const ALLOWED_COLLECTIONS = [
+  'gallery', 'media', 'orders', 'site',
+  'extra_index', 'extra_personal', 'extra_teaching', 'extra_pa',
+  'extra_daan1', 'extra_daan2', 'extra_daan3',
+  'extra_gallery', 'extra_media', 'extra_orders'
+];
 const DRIVE_FOLDER_NAME = 'Pasut Collection Uploads';
 
 function doPost(e) {

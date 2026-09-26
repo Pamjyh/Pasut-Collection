@@ -1,25 +1,47 @@
 /**
- * Pasut Collection — generic editable card list.
- * Reads content from data/<collection>.json (fast, static, same as any other
- * file on GitHub Pages). Only POSTs to Apps Script when the owner saves a
- * change — viewers never trigger a network call to Apps Script at all.
+ * Pasut Collection — shared self-editing runtime, loaded on every page.
  *
- * Host page provides one <div id="cardMount"
- *   data-collection="gallery"
- *   data-empty="..."
- *   data-fields='[{"key":"caption","label":"..."}]'>
- * </div>
+ * Viewers never call Apps Script: every page reads its content straight from
+ * static data/<collection>.json files (fast, same as any other GitHub Pages
+ * file). Apps Script is only called when the owner is in edit mode and saves
+ * a change — it writes the updated JSON back to GitHub.
+ *
+ * One shared "editing" flag drives every editable region on the page (brand
+ * name, a card list like gallery/media/orders, and/or a free "extra content"
+ * block section) so a single "แก้ไขหน้านี้" button turns all of them on
+ * at once, rather than each region needing its own toggle.
+ *
+ * Host page hooks (all optional — a page uses whichever it has):
+ *   .brand > [data-field="name"]                     editable site name
+ *   <div id="cardMount" data-collection="..." data-fields='[...]' data-empty="...">
+ *   <div id="extraBlocks" data-collection="extra_...">   free text/image blocks
  */
 (function () {
-  const mount = document.getElementById('cardMount');
-  if (!mount) return;
-  const collection = mount.dataset.collection;
-  const fields = JSON.parse(mount.dataset.fields || '[]');
-  const emptyMsg = mount.dataset.empty || 'ยังไม่มีข้อมูล';
-  const jsonPath = 'data/' + collection + '.json';
-
-  let items = [];
   let editing = false;
+  const rerenderers = [];
+
+  function onToggle(fn) {
+    rerenderers.push(fn);
+  }
+
+  function ensureEditToggle() {
+    if (document.querySelector('.edit-toggle')) return;
+    const btn = document.createElement('button');
+    btn.className = 'edit-toggle';
+    btn.type = 'button';
+    btn.textContent = 'แก้ไขหน้านี้';
+    btn.addEventListener('click', () => {
+      if (!editing && !localStorage.getItem('pcPin')) {
+        const pin = window.prompt('ใส่รหัสแก้ไขเว็บ');
+        if (!pin) return;
+        localStorage.setItem('pcPin', pin);
+      }
+      editing = !editing;
+      btn.textContent = editing ? 'เสร็จแล้ว' : 'แก้ไขหน้านี้';
+      rerenderers.forEach((fn) => fn());
+    });
+    document.body.appendChild(btn);
+  }
 
   function fileToBase64(file) {
     return new Promise((resolve, reject) => {
@@ -39,7 +61,7 @@
     return pin;
   }
 
-  async function callBackend(payload) {
+  async function callBackend(collection, payload) {
     if (typeof APPS_SCRIPT_URL === 'undefined' || !APPS_SCRIPT_URL || APPS_SCRIPT_URL.indexOf('PASTE_') === 0) {
       window.alert('ยังไม่ได้ตั้งค่า APPS_SCRIPT_URL ใน config.js');
       return null;
@@ -55,78 +77,14 @@
       if (data.error === 'wrong_pin') {
         localStorage.removeItem('pcPin');
         window.alert('รหัสไม่ถูกต้อง ลองใหม่อีกครั้ง');
+      } else if (data.error === 'locked_out') {
+        window.alert('ใส่รหัสผิดหลายครั้งเกินไป รออีก 5 นาทีแล้วลองใหม่');
       } else {
         window.alert('บันทึกไม่สำเร็จ: ' + data.error);
       }
       return null;
     }
     return data;
-  }
-
-  function render() {
-    mount.innerHTML = '';
-    if (!items.length && !editing) {
-      const p = document.createElement('p');
-      p.className = 'empty-note';
-      p.textContent = emptyMsg;
-      mount.appendChild(p);
-    } else {
-      const grid = document.createElement('div');
-      grid.className = 'cardgrid';
-      items
-        .slice()
-        .sort((a, b) => (a.order || 0) - (b.order || 0))
-        .forEach((item, idx, arr) => {
-          const card = document.createElement('div');
-          card.className = 'gcard';
-
-          const photo = document.createElement('div');
-          photo.className = 'photo';
-          if (item.url) {
-            const img = document.createElement('img');
-            img.src = item.url;
-            img.alt = item.caption || item.title || '';
-            photo.appendChild(img);
-          }
-          card.appendChild(photo);
-
-          const body = document.createElement('div');
-          body.className = 'body';
-          fields.forEach((f, i) => {
-            const val = item[f.key];
-            if (!val) return;
-            const el = document.createElement('div');
-            el.className = i === 0 ? 'title' : 'cap';
-            el.textContent = val;
-            body.appendChild(el);
-          });
-          card.appendChild(body);
-
-          if (editing) {
-            const controls = document.createElement('div');
-            controls.className = 'edit-controls';
-            const up = mkBtn('↑', () => move(idx, -1, arr));
-            up.disabled = idx === 0;
-            const down = mkBtn('↓', () => move(idx, 1, arr));
-            down.disabled = idx === arr.length - 1;
-            const editBtn = mkBtn('แก้ไข', () => openForm(item));
-            const delBtn = mkBtn('ลบ', () => doDelete(item));
-            delBtn.classList.add('btn-del');
-            controls.append(up, down, editBtn, delBtn);
-            card.appendChild(controls);
-          }
-
-          grid.appendChild(card);
-        });
-      mount.appendChild(grid);
-    }
-
-    if (editing) {
-      const addBtn = mkBtn('+ เพิ่มรายการ', () => openForm(null));
-      addBtn.className = 'btn-add';
-      addBtn.style.marginTop = '16px';
-      mount.appendChild(addBtn);
-    }
   }
 
   function mkBtn(label, onClick) {
@@ -137,102 +95,353 @@
     return b;
   }
 
-  async function move(idx, dir, arr) {
-    const j = idx + dir;
-    if (j < 0 || j >= arr.length) return;
-    const a = arr[idx], b = arr[j];
-    const origA = a.order, origB = b.order;
-    a.order = origB;
-    b.order = origA;
-    render();
-    const order = items.slice().sort((x, y) => (x.order || 0) - (y.order || 0)).map((x) => x.id);
-    const result = await callBackend({ action: 'reorder', order: order });
-    if (result) { items = result.items; }
-    else { a.order = origA; b.order = origB; } // undo the optimistic swap if the save failed
-    render();
-  }
+  /* ---------- brand / site name (every page) ---------- */
+  function mountBrand() {
+    const el = document.querySelector('.brand [data-field="name"]');
+    if (!el) return;
+    const collection = 'site';
+    let doc = { id: 'brand', name: el.textContent.trim() };
 
-  async function doDelete(item) {
-    if (!window.confirm('ลบรายการนี้ใช่มั้ย?')) return;
-    const result = await callBackend({ action: 'delete', id: item.id });
-    if (result) { items = result.items; render(); }
-  }
+    function refresh() {
+      el.contentEditable = editing ? 'true' : 'false';
+    }
+    onToggle(refresh);
+    refresh();
 
-  function openForm(item) {
-    const overlay = document.createElement('div');
-    overlay.className = 'pc-modal-overlay';
-    const modal = document.createElement('div');
-    modal.className = 'pc-modal';
-    modal.innerHTML = '<h3>' + (item ? 'แก้ไขรายการ' : 'เพิ่มรายการใหม่') + '</h3>';
-
-    const inputs = {};
-    fields.forEach((f) => {
-      const label = document.createElement('label');
-      label.textContent = f.label;
-      const input = document.createElement(f.multiline ? 'textarea' : 'input');
-      if (!f.multiline) input.type = 'text';
-      input.value = (item && item[f.key]) || '';
-      inputs[f.key] = input;
-      label.appendChild(input);
-      modal.appendChild(label);
+    let saveTimer = null;
+    el.addEventListener('input', () => {
+      clearTimeout(saveTimer);
+      saveTimer = setTimeout(async () => {
+        const result = await callBackend(collection, { action: 'update', id: doc.id, fields: { name: el.textContent.trim() } });
+        if (!result) return;
+        const updated = result.items.filter((x) => x.id === doc.id)[0];
+        if (updated) doc = updated;
+      }, 700);
     });
 
-    const photoLabel = document.createElement('label');
-    photoLabel.textContent = 'รูปภาพ (เว้นว่างได้ถ้าไม่เปลี่ยน)';
-    const fileInput = document.createElement('input');
-    fileInput.type = 'file';
-    fileInput.accept = 'image/*';
-    photoLabel.appendChild(fileInput);
-    modal.appendChild(photoLabel);
-
-    const actions = document.createElement('div');
-    actions.className = 'pc-modal-actions';
-    const saveBtn = mkBtn('บันทึก', async () => {
-      saveBtn.disabled = true;
-      saveBtn.textContent = 'กำลังบันทึก...';
-      const payloadFields = {};
-      fields.forEach((f) => { payloadFields[f.key] = inputs[f.key].value.trim(); });
-      const payload = { action: item ? 'update' : 'add', fields: payloadFields };
-      if (item) payload.id = item.id;
-      if (fileInput.files[0]) {
-        payload.imageBase64 = await fileToBase64(fileInput.files[0]);
-        payload.imageName = fileInput.files[0].name;
-        payload.imageType = fileInput.files[0].type;
-      }
-      const result = await callBackend(payload);
-      if (result) { items = result.items; render(); overlay.remove(); }
-      else { saveBtn.disabled = false; saveBtn.textContent = 'บันทึก'; }
-    });
-    saveBtn.className = 'btn-add';
-    const cancelBtn = mkBtn('ยกเลิก', () => overlay.remove());
-    actions.append(saveBtn, cancelBtn);
-    modal.appendChild(actions);
-
-    overlay.appendChild(modal);
-    document.body.appendChild(overlay);
+    fetch('data/site.json', { cache: 'no-store' })
+      .then((r) => r.json())
+      .then((items) => {
+        const found = items.filter((x) => x.id === 'brand')[0];
+        if (found) { doc = found; el.textContent = found.name; }
+      })
+      .catch(() => {});
   }
 
-  // shared edit-mode toggle — one per page, created once
-  if (!document.querySelector('.edit-toggle')) {
-    const btn = document.createElement('button');
-    btn.className = 'edit-toggle';
-    btn.type = 'button';
-    btn.textContent = 'แก้ไขหน้านี้';
-    btn.addEventListener('click', () => {
-      if (!editing && !localStorage.getItem('pcPin')) {
-        const pin = window.prompt('ใส่รหัสแก้ไขเว็บ');
-        if (!pin) return;
-        localStorage.setItem('pcPin', pin);
+  /* ---------- card list (gallery / media / orders) ---------- */
+  function mountEditableList(mount) {
+    const collection = mount.dataset.collection;
+    const fields = JSON.parse(mount.dataset.fields || '[]');
+    const emptyMsg = mount.dataset.empty || 'ยังไม่มีข้อมูล';
+    const jsonPath = 'data/' + collection + '.json';
+    let items = [];
+
+    function render() {
+      mount.innerHTML = '';
+      if (!items.length && !editing) {
+        const p = document.createElement('p');
+        p.className = 'empty-note';
+        p.textContent = emptyMsg;
+        mount.appendChild(p);
+      } else {
+        const grid = document.createElement('div');
+        grid.className = 'cardgrid';
+        items
+          .slice()
+          .sort((a, b) => (a.order || 0) - (b.order || 0))
+          .forEach((item, idx, arr) => {
+            const card = document.createElement('div');
+            card.className = 'gcard';
+
+            const photo = document.createElement('div');
+            photo.className = 'photo';
+            if (item.url) {
+              const img = document.createElement('img');
+              img.src = item.url;
+              img.alt = item.caption || item.title || '';
+              photo.appendChild(img);
+            }
+            card.appendChild(photo);
+
+            const body = document.createElement('div');
+            body.className = 'body';
+            fields.forEach((f, i) => {
+              const val = item[f.key];
+              if (!val) return;
+              const el = document.createElement('div');
+              el.className = i === 0 ? 'title' : 'cap';
+              el.textContent = val;
+              body.appendChild(el);
+            });
+            card.appendChild(body);
+
+            if (editing) {
+              const controls = document.createElement('div');
+              controls.className = 'edit-controls';
+              const up = mkBtn('↑', () => move(idx, -1, arr));
+              up.disabled = idx === 0;
+              const down = mkBtn('↓', () => move(idx, 1, arr));
+              down.disabled = idx === arr.length - 1;
+              const editBtn = mkBtn('แก้ไข', () => openForm(item));
+              const delBtn = mkBtn('ลบ', () => doDelete(item));
+              delBtn.classList.add('btn-del');
+              controls.append(up, down, editBtn, delBtn);
+              card.appendChild(controls);
+            }
+
+            grid.appendChild(card);
+          });
+        mount.appendChild(grid);
       }
-      editing = !editing;
-      btn.textContent = editing ? 'เสร็จแล้ว' : 'แก้ไขหน้านี้';
+
+      if (editing) {
+        const addBtn = mkBtn('+ เพิ่มรายการ', () => openForm(null));
+        addBtn.className = 'btn-add';
+        addBtn.style.marginTop = '16px';
+        mount.appendChild(addBtn);
+      }
+    }
+
+    async function move(idx, dir, arr) {
+      const j = idx + dir;
+      if (j < 0 || j >= arr.length) return;
+      const a = arr[idx], b = arr[j];
+      const origA = a.order, origB = b.order;
+      a.order = origB;
+      b.order = origA;
       render();
-    });
-    document.body.appendChild(btn);
+      const order = items.slice().sort((x, y) => (x.order || 0) - (y.order || 0)).map((x) => x.id);
+      const result = await callBackend(collection, { action: 'reorder', order: order });
+      if (result) { items = result.items; }
+      else { a.order = origA; b.order = origB; }
+      render();
+    }
+
+    async function doDelete(item) {
+      if (!window.confirm('ลบรายการนี้ใช่มั้ย?')) return;
+      const result = await callBackend(collection, { action: 'delete', id: item.id });
+      if (result) { items = result.items; render(); }
+    }
+
+    function openForm(item) {
+      const overlay = document.createElement('div');
+      overlay.className = 'pc-modal-overlay';
+      const modal = document.createElement('div');
+      modal.className = 'pc-modal';
+      modal.innerHTML = '<h3>' + (item ? 'แก้ไขรายการ' : 'เพิ่มรายการใหม่') + '</h3>';
+
+      const inputs = {};
+      fields.forEach((f) => {
+        const label = document.createElement('label');
+        label.textContent = f.label;
+        const input = document.createElement(f.multiline ? 'textarea' : 'input');
+        if (!f.multiline) input.type = 'text';
+        input.value = (item && item[f.key]) || '';
+        inputs[f.key] = input;
+        label.appendChild(input);
+        modal.appendChild(label);
+      });
+
+      const photoLabel = document.createElement('label');
+      photoLabel.textContent = 'รูปภาพ (เว้นว่างได้ถ้าไม่เปลี่ยน)';
+      const fileInput = document.createElement('input');
+      fileInput.type = 'file';
+      fileInput.accept = 'image/*';
+      photoLabel.appendChild(fileInput);
+      modal.appendChild(photoLabel);
+
+      const actions = document.createElement('div');
+      actions.className = 'pc-modal-actions';
+      const saveBtn = mkBtn('บันทึก', async () => {
+        saveBtn.disabled = true;
+        saveBtn.textContent = 'กำลังบันทึก...';
+        const payloadFields = {};
+        fields.forEach((f) => { payloadFields[f.key] = inputs[f.key].value.trim(); });
+        const payload = { action: item ? 'update' : 'add', fields: payloadFields };
+        if (item) payload.id = item.id;
+        if (fileInput.files[0]) {
+          payload.imageBase64 = await fileToBase64(fileInput.files[0]);
+          payload.imageName = fileInput.files[0].name;
+          payload.imageType = fileInput.files[0].type;
+        }
+        const result = await callBackend(collection, payload);
+        if (result) { items = result.items; render(); overlay.remove(); }
+        else { saveBtn.disabled = false; saveBtn.textContent = 'บันทึก'; }
+      });
+      saveBtn.className = 'btn-add';
+      const cancelBtn = mkBtn('ยกเลิก', () => overlay.remove());
+      actions.append(saveBtn, cancelBtn);
+      modal.appendChild(actions);
+
+      overlay.appendChild(modal);
+      document.body.appendChild(overlay);
+    }
+
+    onToggle(render);
+    fetch(jsonPath, { cache: 'no-store' })
+      .then((r) => r.json())
+      .then((data) => { items = data; render(); })
+      .catch(() => { items = []; render(); });
   }
 
-  fetch(jsonPath, { cache: 'no-store' })
-    .then((r) => r.json())
-    .then((data) => { items = data; render(); })
-    .catch(() => { items = []; render(); });
+  /* ---------- free text/image blocks (every page, appended section) ---------- */
+  function mountBlocks(mount) {
+    const collection = mount.dataset.collection;
+    const jsonPath = 'data/' + collection + '.json';
+    let items = [];
+
+    function render() {
+      mount.innerHTML = '';
+      const sorted = items.slice().sort((a, b) => (a.order || 0) - (b.order || 0));
+      sorted.forEach((item, idx, arr) => {
+        const block = document.createElement('div');
+        block.className = item.kind === 'image' ? 'gcard' : 'summary-card';
+        block.style.marginBottom = '14px';
+
+        if (item.kind === 'image') {
+          const photo = document.createElement('div');
+          photo.className = 'photo';
+          if (item.url) {
+            const img = document.createElement('img');
+            img.src = item.url;
+            img.alt = item.text || '';
+            photo.appendChild(img);
+          }
+          block.appendChild(photo);
+          if (item.text) {
+            const body = document.createElement('div');
+            body.className = 'body';
+            const cap = document.createElement('div');
+            cap.className = 'cap';
+            cap.textContent = item.text;
+            body.appendChild(cap);
+            block.appendChild(body);
+          }
+        } else {
+          const p = document.createElement('p');
+          p.style.whiteSpace = 'pre-line';
+          p.style.margin = '0';
+          p.textContent = item.text || '';
+          block.appendChild(p);
+        }
+
+        if (editing) {
+          const controls = document.createElement('div');
+          controls.className = 'edit-controls';
+          controls.style.marginTop = '10px';
+          const up = mkBtn('↑', () => move(idx, -1, arr));
+          up.disabled = idx === 0;
+          const down = mkBtn('↓', () => move(idx, 1, arr));
+          down.disabled = idx === arr.length - 1;
+          const editBtn = mkBtn('แก้ไข', () => openForm(item));
+          const delBtn = mkBtn('ลบ', () => doDelete(item));
+          delBtn.classList.add('btn-del');
+          controls.append(up, down, editBtn, delBtn);
+          block.appendChild(controls);
+        }
+        mount.appendChild(block);
+      });
+
+      if (editing) {
+        const addRow = document.createElement('div');
+        addRow.style.display = 'flex';
+        addRow.style.gap = '10px';
+        addRow.style.flexWrap = 'wrap';
+        const addText = mkBtn('+ เพิ่มข้อความ', () => openForm(null, 'text'));
+        addText.className = 'btn-add';
+        const addImage = mkBtn('+ เพิ่มรูปภาพ', () => openForm(null, 'image'));
+        addImage.className = 'btn-add';
+        addRow.append(addText, addImage);
+        mount.appendChild(addRow);
+      }
+    }
+
+    async function move(idx, dir, arr) {
+      const j = idx + dir;
+      if (j < 0 || j >= arr.length) return;
+      const a = arr[idx], b = arr[j];
+      const origA = a.order, origB = b.order;
+      a.order = origB;
+      b.order = origA;
+      render();
+      const order = items.slice().sort((x, y) => (x.order || 0) - (y.order || 0)).map((x) => x.id);
+      const result = await callBackend(collection, { action: 'reorder', order: order });
+      if (result) { items = result.items; }
+      else { a.order = origA; b.order = origB; }
+      render();
+    }
+
+    async function doDelete(item) {
+      if (!window.confirm('ลบเนื้อหานี้ใช่มั้ย?')) return;
+      const result = await callBackend(collection, { action: 'delete', id: item.id });
+      if (result) { items = result.items; render(); }
+    }
+
+    function openForm(item, kind) {
+      const isImage = item ? item.kind === 'image' : kind === 'image';
+      const overlay = document.createElement('div');
+      overlay.className = 'pc-modal-overlay';
+      const modal = document.createElement('div');
+      modal.className = 'pc-modal';
+      modal.innerHTML = '<h3>' + (item ? 'แก้ไขเนื้อหา' : isImage ? 'เพิ่มรูปภาพ' : 'เพิ่มข้อความ') + '</h3>';
+
+      const textLabel = document.createElement('label');
+      textLabel.textContent = isImage ? 'คำบรรยายภาพ (ไม่บังคับ)' : 'ข้อความ';
+      const textInput = document.createElement('textarea');
+      textInput.value = (item && item.text) || '';
+      textLabel.appendChild(textInput);
+      modal.appendChild(textLabel);
+
+      let fileInput = null;
+      if (isImage) {
+        const photoLabel = document.createElement('label');
+        photoLabel.textContent = 'รูปภาพ (เว้นว่างได้ถ้าไม่เปลี่ยน)';
+        fileInput = document.createElement('input');
+        fileInput.type = 'file';
+        fileInput.accept = 'image/*';
+        photoLabel.appendChild(fileInput);
+        modal.appendChild(photoLabel);
+      }
+
+      const actions = document.createElement('div');
+      actions.className = 'pc-modal-actions';
+      const saveBtn = mkBtn('บันทึก', async () => {
+        saveBtn.disabled = true;
+        saveBtn.textContent = 'กำลังบันทึก...';
+        const payload = {
+          action: item ? 'update' : 'add',
+          fields: { text: textInput.value.trim(), kind: isImage ? 'image' : 'text' },
+        };
+        if (item) payload.id = item.id;
+        if (fileInput && fileInput.files[0]) {
+          payload.imageBase64 = await fileToBase64(fileInput.files[0]);
+          payload.imageName = fileInput.files[0].name;
+          payload.imageType = fileInput.files[0].type;
+        }
+        const result = await callBackend(collection, payload);
+        if (result) { items = result.items; render(); overlay.remove(); }
+        else { saveBtn.disabled = false; saveBtn.textContent = 'บันทึก'; }
+      });
+      saveBtn.className = 'btn-add';
+      const cancelBtn = mkBtn('ยกเลิก', () => overlay.remove());
+      actions.append(saveBtn, cancelBtn);
+      modal.appendChild(actions);
+
+      overlay.appendChild(modal);
+      document.body.appendChild(overlay);
+    }
+
+    onToggle(render);
+    fetch(jsonPath, { cache: 'no-store' })
+      .then((r) => r.json())
+      .then((data) => { items = data; render(); })
+      .catch(() => { items = []; render(); });
+  }
+
+  ensureEditToggle();
+  mountBrand();
+  const cardMount = document.getElementById('cardMount');
+  if (cardMount) mountEditableList(cardMount);
+  const extraMount = document.getElementById('extraBlocks');
+  if (extraMount) mountBlocks(extraMount);
 })();
