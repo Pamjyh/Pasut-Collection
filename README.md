@@ -30,14 +30,19 @@ apps-script/Code.gs  โค้ด backend ที่ต้องเอาไป d
 ## ตั้งค่าระบบแก้ไข (ทำครั้งเดียว)
 
 ### 1. สร้าง GitHub Token ให้ Apps Script ใช้เขียนไฟล์แทนคุณ
-ไปที่ https://github.com/settings/tokens/new → Note ใส่อะไรก็ได้ → ติ๊ก scope **repo** → Generate token → copy เก็บไว้ (ต่างจาก token ที่ใช้ตอน push โค้ดจากเครื่อง แนะนำให้สร้างใหม่แยกกัน)
+ใช้ **fine-grained token** แบบจำกัดสิทธิ์เฉพาะ repo นี้ (ปลอดภัยกว่า classic token แบบ scope `repo` ซึ่งจะให้สิทธิ์เขียน/ลบได้ทุก repo ในบัญชี — ไม่ควรใช้ เพราะลิงก์ Apps Script ด้านล่างเป็นลิงก์สาธารณะ ถ้า PIN หลุดจะกระทบแค่ repo นี้ ไม่ลามไป repo อื่น):
+
+1. ไปที่ https://github.com/settings/personal-access-tokens/new
+2. **Repository access** → เลือก **Only select repositories** → เลือก `Pasut-Collection` เท่านั้น
+3. **Permissions → Repository permissions → Contents** → เปลี่ยนเป็น **Read and write** (permission อื่นปล่อย No access ทั้งหมด)
+4. Generate token → copy เก็บไว้ (ต่างจาก token ที่ใช้ตอน push โค้ดจากเครื่อง สร้างแยกกัน)
 
 ### 2. Deploy Apps Script
 1. เปิด https://script.google.com → New project
 2. ลบโค้ดเปล่าเดิมออก แล้ววางเนื้อหาทั้งหมดจากไฟล์ `apps-script/Code.gs` ในโฟลเดอร์นี้ลงไปแทน
 3. กดไอคอนเฟือง **Project Settings** → เลื่อนลงหา **Script Properties** → Add script property 2 อัน:
    - `GITHUB_TOKEN` = token จากข้อ 1
-   - `EDIT_PIN` = รหัสที่คุณจะใช้ตอนกดแก้ไขเว็บ (ตัวเลข/ตัวอักษรอะไรก็ได้ จำง่าย ๆ)
+   - `EDIT_PIN` = รหัสที่คุณจะใช้ตอนกดแก้ไขเว็บ — ตั้งให้ยาวหน่อย (8 ตัวขึ้นไป ผสมตัวอักษร/ตัวเลข) เพราะลิงก์ Apps Script เป็นลิงก์สาธารณะ ใครก็เห็นได้จากซอร์สโค้ด `config.js`
 4. กลับไปแท็บ Editor → มุมขวาบน **Deploy → New deployment**
 5. กดไอคอนเฟืองข้าง "Select type" → เลือก **Web app**
 6. Execute as: **Me** / Who has access: **Anyone** → **Deploy**

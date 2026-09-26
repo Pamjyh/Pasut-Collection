@@ -141,13 +141,14 @@
     const j = idx + dir;
     if (j < 0 || j >= arr.length) return;
     const a = arr[idx], b = arr[j];
-    const tmp = a.order;
-    a.order = b.order;
-    b.order = tmp;
+    const origA = a.order, origB = b.order;
+    a.order = origB;
+    b.order = origA;
     render();
     const order = items.slice().sort((x, y) => (x.order || 0) - (y.order || 0)).map((x) => x.id);
     const result = await callBackend({ action: 'reorder', order: order });
-    if (result) items = result.items;
+    if (result) { items = result.items; }
+    else { a.order = origA; b.order = origB; } // undo the optimistic swap if the save failed
     render();
   }
 
