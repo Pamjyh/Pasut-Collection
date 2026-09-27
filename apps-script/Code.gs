@@ -50,7 +50,15 @@ function doPost(e) {
   const pin = PropertiesService.getScriptProperties().getProperty('EDIT_PIN');
   if (!pin || body.pin !== pin) {
     recordPinFailure();
-    return jsonOut({ ok: false, error: 'wrong_pin' });
+    // TEMPORARY DEBUG — lengths only, never the actual values — remove once
+    // the pin-mismatch report is resolved (see chat)
+    return jsonOut({
+      ok: false,
+      error: 'wrong_pin',
+      debugStoredLen: pin ? pin.length : 0,
+      debugStoredEmpty: !pin,
+      debugSubmittedLen: body.pin ? body.pin.length : 0,
+    });
   }
   CacheService.getScriptCache().remove('pin_fail');
 
