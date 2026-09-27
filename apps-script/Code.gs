@@ -5,7 +5,7 @@
  * their content straight from the static data/*.json files on GitHub Pages
  * (fast, no round trip). This script only runs when the owner saves an edit —
  * it updates data/<collection>.json directly on GitHub via the Contents API,
- * and uploads any new photo to Google Drive.
+ * and uploads any new photo into the repo (uploads/<uuid>.<ext>) the same way.
  *
  * SETUP (one time):
  * 1. script.google.com -> New project -> paste this file in as Code.gs
@@ -33,7 +33,6 @@ const ALLOWED_COLLECTIONS = [
   'content_index', 'content_personal', 'content_teaching', 'content_pa',
   'content_daan1', 'content_daan2', 'content_daan3'
 ];
-const DRIVE_FOLDER_NAME = 'Pasut Collection Uploads';
 
 function doPost(e) {
   let body;
@@ -81,7 +80,7 @@ function doPost(e) {
 
     if (body.action === 'add') {
       const item = Object.assign({ id: Utilities.getUuid(), order: Date.now() }, body.fields || {});
-      if (body.imageBase64) item.url = driveUpload(body.imageBase64, body.imageName, body.imageType);
+      if (body.imageBase64) item.url = uploadImage(body.imageBase64, body.imageName, body.imageType);
       items.push(item);
     } else if (body.action === 'update') {
       let item = items.filter(function (x) { return x.id === body.id; })[0];
@@ -100,7 +99,7 @@ function doPost(e) {
         items.push(item);
       }
       Object.assign(item, body.fields || {});
-      if (body.imageBase64) item.url = driveUpload(body.imageBase64, body.imageName, body.imageType);
+      if (body.imageBase64) item.url = uploadImage(body.imageBase64, body.imageName, body.imageType);
     } else if (body.action === 'delete') {
       items = items.filter(function (x) { return x.id !== body.id; });
     } else if (body.action === 'reorder') {
@@ -181,17 +180,33 @@ function githubPutFile(path, itemsArray, sha) {
   if (res.getResponseCode() >= 300) throw new Error('github_put_failed: ' + res.getContentText());
 }
 
-function driveUpload(base64Data, filename, mimeType) {
+// Stores the photo in the repo itself (uploads/<uuid>.<ext>) instead of
+// Google Drive: a Drive "uc?export=view" link loads fine via direct
+// navigation but fails to render when embedded as a cross-origin <img> (Drive
+// blocks/redirects it — confirmed live: naturalWidth stayed 0 despite the
+// <img> reporting complete). Serving it from the same GitHub Pages origin as
+// every other image on the site sidesteps that entirely.
+function uploadImage(base64Data, filename, mimeType) {
   const bytes = Utilities.base64Decode(base64Data);
   if (bytes.length > 8 * 1024 * 1024) throw new Error('image_too_large');
-  const blob = Utilities.newBlob(bytes, mimeType || 'image/jpeg', filename || 'photo.jpg');
-  const folder = getOrCreateFolder(DRIVE_FOLDER_NAME);
-  const file = folder.createFile(blob);
-  file.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
-  return 'https://drive.google.com/uc?export=view&id=' + file.getId();
+  const ext = (filename && filename.lastIndexOf('.') !== -1) ? filename.slice(filename.lastIndexOf('.')) : guessExt(mimeType);
+  const path = 'uploads/' + Utilities.getUuid() + ext;
+  const payload = {
+    message: 'Upload ' + path + ' via Pasut Collection edit',
+    content: Utilities.base64Encode(bytes),
+    branch: GITHUB_BRANCH,
+  };
+  const res = UrlFetchApp.fetch(githubContentsUrl(path), {
+    method: 'put',
+    headers: Object.assign(githubHeaders(), { 'Content-Type': 'application/json' }),
+    payload: JSON.stringify(payload),
+    muteHttpExceptions: true,
+  });
+  if (res.getResponseCode() >= 300) throw new Error('github_upload_failed: ' + res.getContentText());
+  return path;
 }
 
-function getOrCreateFolder(name) {
-  const it = DriveApp.getFoldersByName(name);
-  return it.hasNext() ? it.next() : DriveApp.createFolder(name);
+function guessExt(mimeType) {
+  const map = { 'image/jpeg': '.jpg', 'image/png': '.png', 'image/webp': '.webp', 'image/gif': '.gif' };
+  return map[mimeType] || '.jpg';
 }

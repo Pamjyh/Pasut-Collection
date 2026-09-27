@@ -46,7 +46,7 @@ apps-script/Code.gs  โค้ด backend ที่ต้องเอาไป d
 4. กลับไปแท็บ Editor → มุมขวาบน **Deploy → New deployment**
 5. กดไอคอนเฟืองข้าง "Select type" → เลือก **Web app**
 6. Execute as: **Me** / Who has access: **Anyone** → **Deploy**
-7. อนุญาต permission ตามที่ Google ถาม (อันนี้ปกติ เพราะสคริปต์ต้องขอสิทธิ์เข้าถึง Drive กับยิง request ออกไปหา GitHub)
+7. อนุญาต permission ตามที่ Google ถาม (อันนี้ปกติ เพราะสคริปต์ต้องยิง request ออกไปหา GitHub)
 8. คัดลอกลิงก์ที่ได้ (ลงท้ายด้วย `/exec`)
 
 ### 3. ตั้งค่าในเว็บ
