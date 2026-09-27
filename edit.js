@@ -93,11 +93,22 @@
     }
     const pin = getPin();
     if (!pin) return null;
-    const res = await fetch(APPS_SCRIPT_URL, {
-      method: 'POST',
-      body: JSON.stringify(Object.assign({ pin: pin, collection: collection }, payload)),
-    });
-    const data = await res.json();
+    let data;
+    try {
+      const res = await fetch(APPS_SCRIPT_URL, {
+        method: 'POST',
+        body: JSON.stringify(Object.assign({ pin: pin, collection: collection }, payload)),
+      });
+      data = await res.json();
+    } catch (err) {
+      // a thrown fetch/parse error here was propagating as an unhandled
+      // promise rejection with nothing shown on screen — every caller just
+      // does `await callBackend(...)` with no try/catch of its own, so a
+      // network hiccup looked exactly like "nothing happened" with no
+      // indication anything was even attempted
+      window.alert('เชื่อมต่อไม่สำเร็จ ลองใหม่อีกครั้ง (' + (err && err.message ? err.message : err) + ')');
+      return null;
+    }
     if (!data.ok) {
       if (data.error === 'wrong_pin') {
         localStorage.removeItem('pcPin');
