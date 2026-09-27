@@ -254,6 +254,13 @@ section .intro{ color:var(--ink-muted); max-width:68ch; margin-bottom:28px; font
 .edit-controls .btn-del{ margin-left:auto; color:var(--orange); }
 .btn-add{ font-size:14px; font-weight:600; padding:10px 18px; border-radius:var(--radius-sm); border:1px dashed var(--primary); background:transparent; color:var(--primary); cursor:pointer; }
 
+[contenteditable="true"]{ outline:1px dashed var(--primary); outline-offset:3px; border-radius:2px; background:var(--blue-bg); }
+.img-edit-btn{
+  position:absolute; right:8px; top:8px; z-index:5; font-size:12px; font-weight:600;
+  padding:6px 12px; border-radius:var(--radius-full); border:none; color:#fff;
+  background:rgba(0,0,0,.6); cursor:pointer;
+}
+
 .pc-modal-overlay{ position:fixed; inset:0; background:rgba(0,0,0,.45); z-index:50; display:flex; align-items:center; justify-content:center; padding:20px; }
 .pc-modal{ background:var(--surface); border-radius:var(--radius-md); padding:24px; width:100%; max-width:420px; max-height:90vh; overflow-y:auto; box-shadow:var(--shadow-2); }
 .pc-modal h3{ margin:0 0 16px; font-size:18px; }

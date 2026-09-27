@@ -454,8 +454,105 @@
       .catch(() => { items = []; render(); });
   }
 
+  /* ---------- fixed-layout content fields (headings/paragraphs/photos baked into each page) ---------- */
+  function mountContentFields() {
+    const collection = document.body.dataset.contentCollection;
+    if (!collection) return;
+    const textEls = Array.prototype.slice.call(document.querySelectorAll('[data-edit]'));
+    const imgEls = Array.prototype.slice.call(document.querySelectorAll('[data-edit-img]'));
+    if (!textEls.length && !imgEls.length) return;
+
+    const jsonPath = 'data/' + collection + '.json';
+    const saved = {};
+    const userIsEditingIds = {};
+    const saveTimers = {};
+
+    function applySaved() {
+      textEls.forEach((el) => {
+        const id = el.dataset.edit;
+        const item = saved[id];
+        if (item && item.text != null && !userIsEditingIds[id]) el.textContent = item.text;
+      });
+      imgEls.forEach((el) => {
+        const item = saved[el.dataset.editImg];
+        if (item && item.url) el.src = item.url;
+      });
+    }
+
+    function ensureImageOverlay(el) {
+      const parent = el.parentElement;
+      if (!parent) return;
+      let btn = parent.querySelector(':scope > .img-edit-btn');
+      if (editing) {
+        if (getComputedStyle(parent).position === 'static') parent.style.position = 'relative';
+        if (!btn) {
+          btn = mkBtn('เปลี่ยนรูป', () => triggerUpload(el));
+          btn.className = 'img-edit-btn';
+          parent.appendChild(btn);
+        }
+      } else if (btn) {
+        btn.remove();
+      }
+    }
+
+    async function triggerUpload(el) {
+      const input = document.createElement('input');
+      input.type = 'file';
+      input.accept = 'image/*';
+      input.addEventListener('change', async () => {
+        const file = input.files[0];
+        if (!file) return;
+        const id = el.dataset.editImg;
+        const imageBase64 = await fileToBase64(file);
+        const result = await callBackend(collection, {
+          action: 'update',
+          id: id,
+          fields: {},
+          imageBase64: imageBase64,
+          imageName: file.name,
+          imageType: file.type,
+        });
+        if (!result) return;
+        const item = result.items.filter((x) => x.id === id)[0];
+        if (item) { saved[id] = item; if (item.url) el.src = item.url; }
+      });
+      input.click();
+    }
+
+    function refresh() {
+      textEls.forEach((el) => { el.contentEditable = editing ? 'true' : 'false'; });
+      imgEls.forEach(ensureImageOverlay);
+    }
+    onToggle(refresh);
+    refresh();
+
+    textEls.forEach((el) => {
+      const id = el.dataset.edit;
+      el.addEventListener('focus', () => { userIsEditingIds[id] = true; });
+      el.addEventListener('blur', () => { userIsEditingIds[id] = false; });
+      el.addEventListener('input', () => {
+        clearTimeout(saveTimers[id]);
+        saveTimers[id] = setTimeout(async () => {
+          const result = await callBackend(collection, { action: 'update', id: id, fields: { text: el.textContent.trim() } });
+          if (!result) return;
+          const updated = result.items.filter((x) => x.id === id)[0];
+          if (updated) saved[id] = updated;
+        }, 700);
+      });
+    });
+
+    fetch(jsonPath, { cache: 'no-store' })
+      .then((r) => r.json())
+      .then((items) => {
+        items.forEach((it) => { saved[it.id] = it; });
+        applySaved();
+      })
+      .catch(() => {});
+  }
+
   ensureEditToggle();
   mountBrand();
+  mountContentFields();
   const cardMount = document.getElementById('cardMount');
   if (cardMount) mountEditableList(cardMount);
   const extraMount = document.getElementById('extraBlocks');

@@ -29,7 +29,9 @@ const ALLOWED_COLLECTIONS = [
   'gallery', 'media', 'orders', 'site',
   'extra_index', 'extra_personal', 'extra_teaching', 'extra_pa',
   'extra_daan1', 'extra_daan2', 'extra_daan3',
-  'extra_gallery', 'extra_media', 'extra_orders'
+  'extra_gallery', 'extra_media', 'extra_orders',
+  'content_index', 'content_personal', 'content_teaching', 'content_pa',
+  'content_daan1', 'content_daan2', 'content_daan3'
 ];
 const DRIVE_FOLDER_NAME = 'Pasut Collection Uploads';
 
@@ -67,8 +69,15 @@ function doPost(e) {
       if (body.imageBase64) item.url = driveUpload(body.imageBase64, body.imageName, body.imageType);
       items.push(item);
     } else if (body.action === 'update') {
-      const item = items.filter(function (x) { return x.id === body.id; })[0];
-      if (!item) return jsonOut({ ok: false, error: 'not_found' });
+      let item = items.filter(function (x) { return x.id === body.id; })[0];
+      if (!item) {
+        // content-field edits use stable, client-chosen ids seeded into an
+        // empty collection ([]) rather than server-generated ones, so the
+        // first save for a given id creates it instead of failing not_found
+        if (!body.id) return jsonOut({ ok: false, error: 'not_found' });
+        item = { id: body.id, order: Date.now() };
+        items.push(item);
+      }
       Object.assign(item, body.fields || {});
       if (body.imageBase64) item.url = driveUpload(body.imageBase64, body.imageName, body.imageType);
     } else if (body.action === 'delete') {
