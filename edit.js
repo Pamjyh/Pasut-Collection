@@ -61,7 +61,21 @@
     return pin;
   }
 
-  async function callBackend(collection, payload) {
+  // requests targeting the same collection must not race: two saves firing
+  // close together (easy now that many independent fields can each debounce
+  // their own autosave on one page) would both read the same GitHub file sha
+  // and the second write to land loses to a 409, so queue them per collection
+  // instead of letting fetches overlap
+  const pendingByCollection = {};
+
+  function callBackend(collection, payload) {
+    const prior = pendingByCollection[collection] || Promise.resolve();
+    const run = prior.catch(() => {}).then(() => callBackendNow(collection, payload));
+    pendingByCollection[collection] = run;
+    return run;
+  }
+
+  async function callBackendNow(collection, payload) {
     if (typeof APPS_SCRIPT_URL === 'undefined' || !APPS_SCRIPT_URL || APPS_SCRIPT_URL.indexOf('PASTE_') === 0) {
       window.alert('ยังไม่ได้ตั้งค่า APPS_SCRIPT_URL ใน config.js');
       return null;
@@ -118,6 +132,10 @@
 
     el.addEventListener('focus', () => { userIsEditing = true; });
     el.addEventListener('blur', () => { userIsEditing = false; });
+    // Enter would make the browser insert a child <div>, and el.textContent
+    // silently concatenates that with no separator on save — block it rather
+    // than let the saved name get two words merged together
+    el.addEventListener('keydown', (e) => { if (e.key === 'Enter') e.preventDefault(); });
 
     let saveTimer = null;
     el.addEventListener('input', () => {
@@ -528,6 +546,9 @@
 
     textEls.forEach((el) => {
       const id = el.dataset.edit;
+      // same reasoning as mountBrand(): block Enter so a multi-child DOM
+      // split never gets silently joined into one run-on line on save
+      el.addEventListener('keydown', (e) => { if (e.key === 'Enter') e.preventDefault(); });
       el.addEventListener('focus', () => { userIsEditingIds[id] = true; });
       el.addEventListener('blur', () => { userIsEditingIds[id] = false; });
       el.addEventListener('input', () => {

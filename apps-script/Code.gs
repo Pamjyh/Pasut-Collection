@@ -71,10 +71,16 @@ function doPost(e) {
     } else if (body.action === 'update') {
       let item = items.filter(function (x) { return x.id === body.id; })[0];
       if (!item) {
-        // content-field edits use stable, client-chosen ids seeded into an
-        // empty collection ([]) rather than server-generated ones, so the
-        // first save for a given id creates it instead of failing not_found
-        if (!body.id) return jsonOut({ ok: false, error: 'not_found' });
+        // only content_* collections use stable, client-chosen ids seeded
+        // into an empty collection ([]) rather than server-generated ones, so
+        // only there does a missing id mean "create it". For every other
+        // collection (gallery/media/orders/site/extra_*) the item must
+        // already exist — a missing id there is a real conflict (e.g. it was
+        // deleted from another tab) and must be reported, not silently
+        // resurrected with a partial, image-less record.
+        if (!body.id || collection.indexOf('content_') !== 0) {
+          return jsonOut({ ok: false, error: 'not_found' });
+        }
         item = { id: body.id, order: Date.now() };
         items.push(item);
       }
