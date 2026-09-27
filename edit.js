@@ -31,13 +31,20 @@
     btn.type = 'button';
     btn.textContent = 'แก้ไขหน้านี้';
     btn.addEventListener('click', async () => {
+      // guards the await below: without this, clicking again while a ping
+      // is still in flight skips straight past the (already-satisfied)
+      // pcPin check and flips editing on with a pin that was never actually
+      // confirmed — or, worse, one just proven wrong by that in-flight ping
+      if (btn.disabled) return;
       if (!editing && !localStorage.getItem('pcPin')) {
         const pin = window.prompt('ใส่รหัสแก้ไขเว็บ');
         if (!pin) return;
         localStorage.setItem('pcPin', pin);
         // confirm it's actually correct right away, instead of silently
         // entering edit mode and only finding out on the first real save
+        btn.disabled = true;
         const check = await callBackend('site', { action: 'ping' });
+        btn.disabled = false;
         if (!check) return; // callBackend already alerted + cleared pcPin
       }
       editing = !editing;
