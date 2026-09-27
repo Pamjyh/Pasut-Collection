@@ -62,6 +62,13 @@ function doPost(e) {
   }
   CacheService.getScriptCache().remove('pin_fail');
 
+  if (body.action === 'ping') {
+    // lets the client confirm a pin the moment it's typed (see edit.js
+    // ensureEditToggle), instead of only discovering a bad pin on the first
+    // real save — no collection involved, so it's checked before that gate
+    return jsonOut({ ok: true });
+  }
+
   const collection = body.collection;
   if (ALLOWED_COLLECTIONS.indexOf(collection) === -1) {
     return jsonOut({ ok: false, error: 'bad_collection' });

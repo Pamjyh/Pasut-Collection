@@ -30,11 +30,15 @@
     btn.className = 'edit-toggle';
     btn.type = 'button';
     btn.textContent = 'แก้ไขหน้านี้';
-    btn.addEventListener('click', () => {
+    btn.addEventListener('click', async () => {
       if (!editing && !localStorage.getItem('pcPin')) {
         const pin = window.prompt('ใส่รหัสแก้ไขเว็บ');
         if (!pin) return;
         localStorage.setItem('pcPin', pin);
+        // confirm it's actually correct right away, instead of silently
+        // entering edit mode and only finding out on the first real save
+        const check = await callBackend('site', { action: 'ping' });
+        if (!check) return; // callBackend already alerted + cleared pcPin
       }
       editing = !editing;
       btn.textContent = editing ? 'เสร็จแล้ว' : 'แก้ไขหน้านี้';
@@ -90,7 +94,15 @@
     if (!data.ok) {
       if (data.error === 'wrong_pin') {
         localStorage.removeItem('pcPin');
-        window.alert('รหัสไม่ถูกต้อง ลองใหม่อีกครั้ง');
+        // TEMPORARY DEBUG — surfaces the length-only fields Code.gs sends
+        // alongside wrong_pin (see apps-script/Code.gs) so the owner can read
+        // them straight off the alert with no DevTools needed — remove both
+        // sides together once the pin-mismatch report is resolved
+        const dbg = (data.debugStoredLen !== undefined)
+          ? '\n(ตรวจสอบ: รหัสที่ตั้งไว้ ' + (data.debugStoredEmpty ? 'ไม่มีค่าเลย' : 'ยาว ' + data.debugStoredLen + ' ตัวอักษร')
+            + ' / รหัสที่พิมพ์ยาว ' + data.debugSubmittedLen + ' ตัวอักษร)'
+          : '';
+        window.alert('รหัสไม่ถูกต้อง ลองใหม่อีกครั้ง' + dbg);
       } else if (data.error === 'locked_out') {
         window.alert('ใส่รหัสผิดหลายครั้งเกินไป รออีก 5 นาทีแล้วลองใหม่');
       } else {
