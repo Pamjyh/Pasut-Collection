@@ -1,0 +1,7 @@
+[
+  { "id": "floor-1", "order": 1, "range": "ด่าน 1–10", "desc": "บวก ลบ ไม่เกิน 20 (ทบทวน ป.3)", "percent": 17 },
+  { "id": "floor-2", "order": 2, "range": "ด่าน 11–20", "desc": "บวก ลบ จำนวน 2 หลัก", "percent": 33 },
+  { "id": "floor-3", "order": 3, "range": "ด่าน 21–35", "desc": "สูตรคูณ แม่ 1–6", "percent": 58 },
+  { "id": "floor-4", "order": 4, "range": "ด่าน 36–50", "desc": "สูตรคูณ แม่ 7–12 และการหาร", "percent": 83 },
+  { "id": "floor-5", "order": 5, "range": "ด่าน 51–60", "desc": "คูณ หาร 2 หลัก + โจทย์ผสม", "percent": 100 }
+]

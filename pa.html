@@ -35,32 +35,9 @@
     <div class="kicker">ส่วนที่ 1 · ข้อตกลงตามมาตรฐานตำแหน่ง</div>
     <h2>สามด้านของงานตามมาตรฐานตำแหน่งครู</h2>
     <p class="intro">แต่ละด้านมีหน้าของตัวเอง แยกตามตัวชี้วัดย่อย</p>
-    <div class="tilegrid">
-      <a class="tile d1" href="daan1.html">
-        <div class="icon-band" aria-hidden="true">🎮</div>
-        <div class="body">
-          <h3 data-edit="tile-d1-title">ด้านการจัดการเรียนรู้</h3>
-          <p data-edit="tile-d1-desc">หลักสูตร การออกแบบ กิจกรรม สื่อ/เทคโนโลยี การวัดผล และบรรยากาศการเรียนรู้ — ขับเคลื่อนด้วยเกม “เดชศาสตร์อนันต์”</p>
-          <div class="go">ดู 8 ตัวชี้วัดย่อย →</div>
-        </div>
-      </a>
-      <a class="tile d2" href="daan2.html">
-        <div class="icon-band" aria-hidden="true">🤝</div>
-        <div class="body">
-          <h3 data-edit="tile-d2-title">ด้านการส่งเสริมและสนับสนุนการจัดการเรียนรู้</h3>
-          <p data-edit="tile-d2-desc">ข้อมูลสารสนเทศผู้เรียน ระบบดูแลช่วยเหลือ งานวิชาการ และการประสานผู้ปกครอง</p>
-          <div class="go">ดู 4 ตัวชี้วัดย่อย →</div>
-        </div>
-      </a>
-      <a class="tile d3" href="daan3.html">
-        <div class="icon-band" aria-hidden="true">🌱</div>
-        <div class="body">
-          <h3 data-edit="tile-d3-title">ด้านการพัฒนาตนเองและวิชาชีพ</h3>
-          <p data-edit="tile-d3-desc">การอบรมพัฒนาตนเอง ชุมชนการเรียนรู้ทางวิชาชีพ (PLC) และการนำความรู้มาใช้จริง</p>
-          <div class="go">ดู 3 ตัวชี้วัดย่อย →</div>
-        </div>
-      </a>
-    </div>
+    <div data-collection="pa_tiles" data-render="tile" data-photo="none"
+         data-fields='[{"key":"title","label":"หัวข้อ"},{"key":"desc","label":"คำอธิบาย","multiline":true},{"key":"href","label":"ลิงก์ปลายทาง (เช่น daan1.html)"},{"key":"icon","label":"ไอคอน (อีโมจิ)"},{"key":"count","label":"ข้อความท้ายการ์ด"},{"key":"colorClass","label":"สี (d1 / d2 / d3 / เว้นว่าง)"}]'
+         data-add-label="+ เพิ่มด้าน" data-empty="ยังไม่มีข้อมูล"></div>
   </section>
 
   <section id="challenge">
@@ -74,13 +51,9 @@
     </div>
 
     <h3 style="margin-top:34px;">โครงสร้าง 60 ด่าน ไต่ระดับตามตัวชี้วัดคณิตศาสตร์</h3>
-    <div class="floors">
-      <div class="floor"><div class="range num">ด่าน 1–10</div><div class="desc">บวก ลบ ไม่เกิน 20 (ทบทวน ป.3)</div><div class="bar"><i style="width:17%"></i></div></div>
-      <div class="floor"><div class="range num">ด่าน 11–20</div><div class="desc">บวก ลบ จำนวน 2 หลัก</div><div class="bar"><i style="width:33%"></i></div></div>
-      <div class="floor"><div class="range num">ด่าน 21–35</div><div class="desc">สูตรคูณ แม่ 1–6</div><div class="bar"><i style="width:58%"></i></div></div>
-      <div class="floor"><div class="range num">ด่าน 36–50</div><div class="desc">สูตรคูณ แม่ 7–12 และการหาร</div><div class="bar"><i style="width:83%"></i></div></div>
-      <div class="floor"><div class="range num">ด่าน 51–60</div><div class="desc">คูณ หาร 2 หลัก + โจทย์ผสม</div><div class="bar"><i style="width:100%"></i></div></div>
-    </div>
+    <div data-collection="pa_floors" data-render="floor-bar" data-photo="none"
+         data-fields='[{"key":"range","label":"ช่วงด่าน (เช่น ด่าน 1–10)"},{"key":"desc","label":"คำอธิบาย"},{"key":"percent","label":"ความคืบหน้า (%)","type":"number","min":0,"max":100}]'
+         data-add-label="+ เพิ่มด่าน" data-empty="ยังไม่มีข้อมูล"></div>
 
     <div class="techrow">
       <div class="tech"><span class="dot"></span>HTML5 Canvas</div>
@@ -111,40 +84,14 @@
     <h2>กลุ่มที่ศึกษา — นักเรียน ป.4–6 จำนวน 97 คน</h2>
     <p class="intro">เปรียบเทียบก่อนใช้เกม (pre) และหลังใช้เกม (post) ตลอดปีการศึกษา</p>
 
-    <div class="stat-grid">
-      <div class="stat-card">
-        <div class="label">ร้อยละความถูกต้อง</div>
-        <div class="stat-move"><span class="from num">62%</span><span class="arrow">→</span><span class="to num">81%</span></div>
-        <div class="stat-bars">
-          <div class="b" style="height:62%"><span class="v num">62</span></div>
-          <div class="b post" style="height:81%"><span class="v num">81</span></div>
-        </div>
-      </div>
-      <div class="stat-card">
-        <div class="label">ร้อยละคำตอบเข้าเกณฑ์ความเร็ว</div>
-        <div class="stat-move"><span class="from num">35%</span><span class="arrow">→</span><span class="to num">58%</span></div>
-        <div class="stat-bars">
-          <div class="b" style="height:35%"><span class="v num">35</span></div>
-          <div class="b post" style="height:58%"><span class="v num">58</span></div>
-        </div>
-      </div>
-      <div class="stat-card">
-        <div class="label">เวลาเฉลี่ย / ข้อ (วินาที)</div>
-        <div class="stat-move"><span class="from num">4.2</span><span class="arrow">→</span><span class="to num">2.6</span></div>
-        <div class="stat-bars">
-          <div class="b" style="height:100%"><span class="v num">4.2</span></div>
-          <div class="b post" style="height:62%"><span class="v num">2.6</span></div>
-        </div>
-      </div>
-    </div>
+    <div data-collection="pa_stats" data-render="stat-compare" data-photo="none"
+         data-fields='[{"key":"label","label":"หัวข้อ"},{"key":"before","label":"ค่าก่อน","type":"number"},{"key":"after","label":"ค่าหลัง","type":"number"},{"key":"unit","label":"หน่วย (เช่น % หรือเว้นว่าง)"}]'
+         data-add-label="+ เพิ่มค่าเปรียบเทียบ" data-empty="ยังไม่มีข้อมูล"></div>
 
-    <div class="funnel">
-      <div class="funnel-row"><div class="fl">นักเรียนทั้งหมด</div><div class="funnel-track"><i style="width:100%"></i></div><div class="fn num">97 คน</div></div>
-      <div class="funnel-row"><div class="fl">ผ่านเกณฑ์ความถูกต้อง</div><div class="funnel-track"><i style="width:82.5%"></i></div><div class="fn num">80 คน · 82.5%</div></div>
-      <div class="funnel-row"><div class="fl">ผ่านเกณฑ์ความเร็ว</div><div class="funnel-track"><i style="width:75.3%"></i></div><div class="fn num">73 คน · 75.3%</div></div>
-      <div class="funnel-row"><div class="fl">ผ่านทั้งสองเกณฑ์</div><div class="funnel-track"><i style="width:68.0%"></i></div><div class="fn num">66 คน · 68.0%</div></div>
-      <p class="note">ข้อมูลกระบวนการ (ความแม่นยำสะสมแยกตามปฏิบัติการ +/−/×/÷) ถูกบันทึกผ่าน Teacher Dashboard ตลอดปีการศึกษา เพื่อวางแผนสอนซ่อมเสริมระหว่างทางโดยไม่ต้องรอถึง post‑test — เป้าหมายขั้นต่อไปคือรายงานผลแยกตามระดับชั้น (ป.4 / ป.5 / ป.6) แทนค่าเฉลี่ยรวม</p>
-    </div>
+    <div data-collection="pa_funnel" data-render="funnel-row" data-photo="none"
+         data-fields='[{"key":"label","label":"หัวข้อแถว"},{"key":"percent","label":"ความกว้างแท่ง (%)","type":"number","min":0,"max":100},{"key":"countText","label":"ข้อความท้ายแถว (เช่น 97 คน)"}]'
+         data-add-label="+ เพิ่มแถว" data-empty="ยังไม่มีข้อมูล"></div>
+    <p class="note">ข้อมูลกระบวนการ (ความแม่นยำสะสมแยกตามปฏิบัติการ +/−/×/÷) ถูกบันทึกผ่าน Teacher Dashboard ตลอดปีการศึกษา เพื่อวางแผนสอนซ่อมเสริมระหว่างทางโดยไม่ต้องรอถึง post‑test — เป้าหมายขั้นต่อไปคือรายงานผลแยกตามระดับชั้น (ป.4 / ป.5 / ป.6) แทนค่าเฉลี่ยรวม</p>
   </section>
 
   <footer>

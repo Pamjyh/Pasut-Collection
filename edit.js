@@ -188,11 +188,115 @@
       .catch(() => {});
   }
 
-  /* ---------- card list (gallery / media / orders) ---------- */
+  /* ---------- editable item lists: cards (gallery/media/orders), and the
+     structured "ตัวชี้วัด"/stat/funnel/floor/load sections in pa/daan1-3/
+     teaching, all sharing one add/edit/delete/reorder engine. data-render on
+     the mount picks how each item is drawn; data-photo="none" hides the
+     photo upload UI entirely for renderModes that have no image ---------- */
+  const RENDERERS = {
+    cards(item) {
+      const card = document.createElement('div');
+      card.className = 'gcard';
+      const photo = document.createElement('div');
+      photo.className = 'photo';
+      if (item.url) {
+        const img = document.createElement('img');
+        img.src = item.url;
+        img.alt = item.caption || item.title || '';
+        photo.appendChild(img);
+      }
+      card.appendChild(photo);
+      const body = document.createElement('div');
+      body.className = 'body';
+      if (item.title) { const t = document.createElement('div'); t.className = 'title'; t.textContent = item.title; body.appendChild(t); }
+      ['caption', 'description', 'date'].forEach((k) => {
+        if (item[k] && k !== 'title') { const c = document.createElement('div'); c.className = 'cap'; c.textContent = item[k]; body.appendChild(c); }
+      });
+      card.appendChild(body);
+      return card;
+    },
+    indicator(item) {
+      const sub = document.createElement('div');
+      sub.className = item.url ? 'sub with-image' : 'sub';
+      const left = document.createElement('div');
+      if (item.tag) { const tag = document.createElement('div'); tag.className = 'tag'; tag.textContent = item.tag; left.appendChild(tag); }
+      const h3 = document.createElement('h3'); h3.textContent = item.title || ''; left.appendChild(h3);
+      const p = document.createElement('p'); p.textContent = item.desc || ''; left.appendChild(p);
+      sub.appendChild(left);
+      if (item.url) {
+        const figure = document.createElement('figure');
+        const img = document.createElement('img'); img.src = item.url; img.alt = item.title || '';
+        figure.appendChild(img);
+        if (item.caption) { const cap = document.createElement('figcaption'); cap.textContent = item.caption; figure.appendChild(cap); }
+        sub.appendChild(figure);
+      }
+      return sub;
+    },
+    tile(item) {
+      const a = document.createElement('a');
+      a.className = 'tile' + (item.colorClass ? ' ' + item.colorClass : '');
+      a.href = item.href || '#';
+      const band = document.createElement('div'); band.className = 'icon-band'; band.setAttribute('aria-hidden', 'true'); band.textContent = item.icon || '';
+      const body = document.createElement('div'); body.className = 'body';
+      const h3 = document.createElement('h3'); h3.textContent = item.title || ''; body.appendChild(h3);
+      const p = document.createElement('p'); p.textContent = item.desc || ''; body.appendChild(p);
+      const go = document.createElement('div'); go.className = 'go'; go.textContent = item.count || ''; body.appendChild(go);
+      a.append(band, body);
+      return a;
+    },
+    'floor-bar'(item) {
+      const floor = document.createElement('div'); floor.className = 'floor';
+      const range = document.createElement('div'); range.className = 'range num'; range.textContent = item.range || ''; floor.appendChild(range);
+      const desc = document.createElement('div'); desc.className = 'desc'; desc.textContent = item.desc || ''; floor.appendChild(desc);
+      const bar = document.createElement('div'); bar.className = 'bar';
+      const i = document.createElement('i'); i.style.width = (Number(item.percent) || 0) + '%'; bar.appendChild(i);
+      floor.appendChild(bar);
+      return floor;
+    },
+    'stat-compare'(item) {
+      const card = document.createElement('div'); card.className = 'stat-card';
+      const label = document.createElement('div'); label.className = 'label'; label.textContent = item.label || ''; card.appendChild(label);
+      const move = document.createElement('div'); move.className = 'stat-move';
+      const from = document.createElement('span'); from.className = 'from num'; from.textContent = item.before + (item.unit || '');
+      const arrow = document.createElement('span'); arrow.className = 'arrow'; arrow.textContent = '→';
+      const to = document.createElement('span'); to.className = 'to num'; to.textContent = item.after + (item.unit || '');
+      move.append(from, arrow, to);
+      card.appendChild(move);
+      return card;
+    },
+    'funnel-row'(item) {
+      const row = document.createElement('div'); row.className = 'funnel-row';
+      const fl = document.createElement('div'); fl.className = 'fl'; fl.textContent = item.label || ''; row.appendChild(fl);
+      const track = document.createElement('div'); track.className = 'funnel-track';
+      const i = document.createElement('i'); i.style.width = (Number(item.percent) || 0) + '%'; track.appendChild(i);
+      row.appendChild(track);
+      const fn = document.createElement('div'); fn.className = 'fn num'; fn.textContent = item.countText || ''; row.appendChild(fn);
+      return row;
+    },
+    'load-card'(item) {
+      const card = document.createElement('div'); card.className = 'loadcard';
+      const term = document.createElement('div'); term.className = 'term'; term.textContent = item.term || ''; card.appendChild(term);
+      const total = document.createElement('div'); total.className = 'total num';
+      total.append(String(item.totalHours || 0) + ' ');
+      const small = document.createElement('small'); small.style.cssText = 'font-size:15px;color:var(--ink-muted);font-weight:400;'; small.textContent = 'ชม./สัปดาห์';
+      total.appendChild(small);
+      card.appendChild(total);
+      const ul = document.createElement('ul');
+      (item.subjects || '').split('\n').forEach((line) => { line = line.trim(); if (line) { const li = document.createElement('li'); li.textContent = line; ul.appendChild(li); } });
+      card.appendChild(ul);
+      return card;
+    },
+  };
+  const WRAPPER_CLASS = { cards: 'cardgrid', tile: 'tilegrid', indicator: 'subs', 'floor-bar': 'floors', 'stat-compare': 'stat-grid', 'funnel-row': 'funnel', 'load-card': 'loadgrid' };
+
   function mountEditableList(mount) {
     const collection = mount.dataset.collection;
     const fields = JSON.parse(mount.dataset.fields || '[]');
     const emptyMsg = mount.dataset.empty || 'ยังไม่มีข้อมูล';
+    const addLabel = mount.dataset.addLabel || '+ เพิ่มรายการ';
+    const renderMode = mount.dataset.render || 'cards';
+    const photoMode = mount.dataset.photo || 'optional'; // 'optional' | 'none'
+    const renderItem = RENDERERS[renderMode] || RENDERERS.cards;
     const jsonPath = 'data/' + collection + '.json';
     let items = [];
 
@@ -204,36 +308,14 @@
         p.textContent = emptyMsg;
         mount.appendChild(p);
       } else {
-        const grid = document.createElement('div');
-        grid.className = 'cardgrid';
+        const wrapperClass = WRAPPER_CLASS[renderMode];
+        const grid = wrapperClass ? document.createElement('div') : mount;
+        if (wrapperClass) grid.className = wrapperClass;
         items
           .slice()
           .sort((a, b) => (a.order || 0) - (b.order || 0))
           .forEach((item, idx, arr) => {
-            const card = document.createElement('div');
-            card.className = 'gcard';
-
-            const photo = document.createElement('div');
-            photo.className = 'photo';
-            if (item.url) {
-              const img = document.createElement('img');
-              img.src = item.url;
-              img.alt = item.caption || item.title || '';
-              photo.appendChild(img);
-            }
-            card.appendChild(photo);
-
-            const body = document.createElement('div');
-            body.className = 'body';
-            fields.forEach((f, i) => {
-              const val = item[f.key];
-              if (!val) return;
-              const el = document.createElement('div');
-              el.className = i === 0 ? 'title' : 'cap';
-              el.textContent = val;
-              body.appendChild(el);
-            });
-            card.appendChild(body);
+            const card = renderItem(item);
 
             if (editing) {
               const controls = document.createElement('div');
@@ -246,16 +328,19 @@
               const delBtn = mkBtn('ลบ', () => doDelete(item));
               delBtn.classList.add('btn-del');
               controls.append(up, down, editBtn, delBtn);
+              // tile items are <a href>: without this, clicking a control
+              // button still triggers the surrounding link's navigation
+              controls.addEventListener('click', (e) => e.preventDefault());
               card.appendChild(controls);
             }
 
             grid.appendChild(card);
           });
-        mount.appendChild(grid);
+        if (wrapperClass) mount.appendChild(grid);
       }
 
       if (editing) {
-        const addBtn = mkBtn('+ เพิ่มรายการ', () => openForm(null));
+        const addBtn = mkBtn(addLabel, () => openForm(null));
         addBtn.className = 'btn-add';
         addBtn.style.marginTop = '16px';
         mount.appendChild(addBtn);
@@ -295,20 +380,23 @@
         const label = document.createElement('label');
         label.textContent = f.label;
         const input = document.createElement(f.multiline ? 'textarea' : 'input');
-        if (!f.multiline) input.type = 'text';
-        input.value = (item && item[f.key]) || '';
+        if (!f.multiline) input.type = f.type === 'number' ? 'number' : 'text';
+        input.value = (item && item[f.key] != null) ? item[f.key] : '';
         inputs[f.key] = input;
         label.appendChild(input);
         modal.appendChild(label);
       });
 
-      const photoLabel = document.createElement('label');
-      photoLabel.textContent = 'รูปภาพ (เว้นว่างได้ถ้าไม่เปลี่ยน)';
-      const fileInput = document.createElement('input');
-      fileInput.type = 'file';
-      fileInput.accept = 'image/*';
-      photoLabel.appendChild(fileInput);
-      modal.appendChild(photoLabel);
+      let fileInput = null;
+      if (photoMode !== 'none') {
+        const photoLabel = document.createElement('label');
+        photoLabel.textContent = 'รูปภาพ (เว้นว่างได้ถ้าไม่เปลี่ยน)';
+        fileInput = document.createElement('input');
+        fileInput.type = 'file';
+        fileInput.accept = 'image/*';
+        photoLabel.appendChild(fileInput);
+        modal.appendChild(photoLabel);
+      }
 
       const actions = document.createElement('div');
       actions.className = 'pc-modal-actions';
@@ -316,10 +404,19 @@
         saveBtn.disabled = true;
         saveBtn.textContent = 'กำลังบันทึก...';
         const payloadFields = {};
-        fields.forEach((f) => { payloadFields[f.key] = inputs[f.key].value.trim(); });
+        fields.forEach((f) => {
+          if (f.type === 'number') {
+            let n = parseFloat(inputs[f.key].value) || 0;
+            if (f.min != null) n = Math.max(f.min, n);
+            if (f.max != null) n = Math.min(f.max, n);
+            payloadFields[f.key] = n;
+          } else {
+            payloadFields[f.key] = inputs[f.key].value.trim();
+          }
+        });
         const payload = { action: item ? 'update' : 'add', fields: payloadFields };
         if (item) payload.id = item.id;
-        if (fileInput.files[0]) {
+        if (fileInput && fileInput.files[0]) {
           payload.imageBase64 = await fileToBase64(fileInput.files[0]);
           payload.imageName = fileInput.files[0].name;
           payload.imageType = fileInput.files[0].type;
@@ -604,8 +701,14 @@
   ensureEditToggle();
   mountBrand();
   mountContentFields();
-  const cardMount = document.getElementById('cardMount');
-  if (cardMount) mountEditableList(cardMount);
+  // every editable item list on the page (gallery/media/orders' single
+  // #cardMount, plus however many structured sections pa/daan1-3/teaching
+  // now have — tiles, indicators, floors, stats, funnel, load cards) shares
+  // this one mount call; #extraBlocks is handled separately by mountBlocks
+  document.querySelectorAll('[data-collection]').forEach((mount) => {
+    if (mount.id === 'extraBlocks') return;
+    mountEditableList(mount);
+  });
   const extraMount = document.getElementById('extraBlocks');
   if (extraMount) mountBlocks(extraMount);
 })();

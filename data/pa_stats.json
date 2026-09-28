@@ -1,0 +1,5 @@
+[
+  { "id": "stat-1", "order": 1, "label": "ร้อยละความถูกต้อง", "before": 62, "after": 81, "unit": "%" },
+  { "id": "stat-2", "order": 2, "label": "ร้อยละคำตอบเข้าเกณฑ์ความเร็ว", "before": 35, "after": 58, "unit": "%" },
+  { "id": "stat-3", "order": 3, "label": "เวลาเฉลี่ย / ข้อ (วินาที)", "before": 4.2, "after": 2.6, "unit": "" }
+]

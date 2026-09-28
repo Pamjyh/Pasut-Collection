@@ -1,0 +1,6 @@
+[
+  { "id": "showcase-1", "order": 1, "url": "images/floor-select.jpg", "caption": "แผนที่ 60 ด่าน" },
+  { "id": "showcase-2", "order": 2, "url": "images/character-select.jpg", "caption": "เลือกทีมวีรบุรุษสี่ธาตุ" },
+  { "id": "showcase-3", "order": 3, "url": "images/boss-battle.jpg", "caption": "ต่อสู้บอส + โจทย์คำนวณ" },
+  { "id": "showcase-4", "order": 4, "url": "images/teacher-dashboard.jpg", "caption": "Teacher Dashboard" }
+]

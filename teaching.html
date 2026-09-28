@@ -31,28 +31,9 @@
   </section>
 
   <section style="padding-top:0;">
-    <div class="loadgrid">
-      <div class="loadcard">
-        <div class="term">ภาคเรียนที่ 2 / 2568</div>
-        <div class="total num">20 <small style="font-size:15px;color:var(--ink-muted);font-weight:400;">ชม./สัปดาห์</small></div>
-        <ul>
-          <li>คณิตศาสตร์ — 12 ชม.</li>
-          <li>กิจกรรมชุมนุม — 1 ชม.</li>
-          <li>กิจกรรมลูกเสือ — 1 ชม.</li>
-          <li>กิจกรรมเสริมคณิตศาสตร์ — 6 ชม.</li>
-        </ul>
-      </div>
-      <div class="loadcard">
-        <div class="term">ภาคเรียนที่ 1 / 2569</div>
-        <div class="total num">20 <small style="font-size:15px;color:var(--ink-muted);font-weight:400;">ชม./สัปดาห์</small></div>
-        <ul>
-          <li>คณิตศาสตร์ — 12 ชม.</li>
-          <li>กิจกรรมชุมนุม — 1 ชม.</li>
-          <li>กิจกรรมลูกเสือ — 1 ชม.</li>
-          <li>กิจกรรมเสริมคณิตศาสตร์ — 6 ชม.</li>
-        </ul>
-      </div>
-    </div>
+    <div data-collection="teaching_loads" data-render="load-card" data-photo="none"
+         data-fields='[{"key":"term","label":"ภาคเรียน"},{"key":"totalHours","label":"รวมชั่วโมง/สัปดาห์","type":"number"},{"key":"subjects","label":"รายวิชา (บรรทัดละ 1 วิชา เช่น คณิตศาสตร์ — 12 ชม.)","multiline":true}]'
+         data-add-label="+ เพิ่มภาคเรียน" data-empty="ยังไม่มีข้อมูล"></div>
   </section>
 
   <section aria-label="เนื้อหาเพิ่มเติม">

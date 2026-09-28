@@ -1,0 +1,6 @@
+[
+  { "id": "funnel-1", "order": 1, "label": "นักเรียนทั้งหมด", "percent": 100, "countText": "97 คน" },
+  { "id": "funnel-2", "order": 2, "label": "ผ่านเกณฑ์ความถูกต้อง", "percent": 82.5, "countText": "80 คน · 82.5%" },
+  { "id": "funnel-3", "order": 3, "label": "ผ่านเกณฑ์ความเร็ว", "percent": 75.3, "countText": "73 คน · 75.3%" },
+  { "id": "funnel-4", "order": 4, "label": "ผ่านทั้งสองเกณฑ์", "percent": 68.0, "countText": "66 คน · 68.0%" }
+]

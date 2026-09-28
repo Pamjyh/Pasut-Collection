@@ -31,7 +31,10 @@ const ALLOWED_COLLECTIONS = [
   'extra_daan1', 'extra_daan2', 'extra_daan3',
   'extra_gallery', 'extra_media', 'extra_orders',
   'content_index', 'content_personal', 'content_teaching', 'content_pa',
-  'content_daan1', 'content_daan2', 'content_daan3'
+  'content_daan1', 'content_daan2', 'content_daan3',
+  'pa_tiles', 'pa_floors', 'pa_stats', 'pa_funnel',
+  'daan1_indicators', 'daan1_showcase', 'daan2_indicators', 'daan3_indicators',
+  'teaching_loads'
 ];
 
 function doPost(e) {
@@ -112,6 +115,11 @@ function doPost(e) {
       // instead of silently dropping it
       const missing = items.filter(function (x) { return !seen[x.id]; });
       items = ordered.concat(missing);
+      // rewrite .order to match the new sequence — without this, the array
+      // is rearranged but every item keeps its old .order number, so the
+      // client's own render() (which sorts by .order) silently snaps the
+      // list right back to the original order on the very next render
+      items.forEach(function (x, i) { x.order = (i + 1) * 1000; });
     } else {
       return jsonOut({ ok: false, error: 'bad_action' });
     }
