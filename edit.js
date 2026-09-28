@@ -236,6 +236,10 @@
       const a = document.createElement('a');
       a.className = 'tile' + (item.colorClass ? ' ' + item.colorClass : '');
       a.href = item.href || '#';
+      // whole card is a link; block navigation while editing the same way
+      // mountBrand() does for its own <a> — clicking anywhere on the card
+      // (not just the small edit-controls bar) shouldn't navigate away
+      a.addEventListener('click', (e) => { if (editing) e.preventDefault(); });
       const band = document.createElement('div'); band.className = 'icon-band'; band.setAttribute('aria-hidden', 'true'); band.textContent = item.icon || '';
       const body = document.createElement('div'); body.className = 'body';
       const h3 = document.createElement('h3'); h3.textContent = item.title || ''; body.appendChild(h3);
@@ -257,9 +261,9 @@
       const card = document.createElement('div'); card.className = 'stat-card';
       const label = document.createElement('div'); label.className = 'label'; label.textContent = item.label || ''; card.appendChild(label);
       const move = document.createElement('div'); move.className = 'stat-move';
-      const from = document.createElement('span'); from.className = 'from num'; from.textContent = item.before + (item.unit || '');
+      const from = document.createElement('span'); from.className = 'from num'; from.textContent = (item.before ?? 0) + (item.unit || '');
       const arrow = document.createElement('span'); arrow.className = 'arrow'; arrow.textContent = '→';
-      const to = document.createElement('span'); to.className = 'to num'; to.textContent = item.after + (item.unit || '');
+      const to = document.createElement('span'); to.className = 'to num'; to.textContent = (item.after ?? 0) + (item.unit || '');
       move.append(from, arrow, to);
       card.appendChild(move);
       return card;
