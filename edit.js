@@ -350,15 +350,27 @@
         addBtn.className = 'btn-add';
         addRow.appendChild(addBtn);
         if (photoMode !== 'none') {
-          const multiBtn = mkBtn('+ เพิ่มรูปหลายรูปพร้อมกัน', () => openMultiUpload(multiBtn));
+          // label/disabled read from batchProgress (not a captured DOM ref)
+          // so this always renders correctly even when some OTHER action in
+          // this same list (delete/edit on an existing item) triggers its
+          // own render() while a batch is still running — a captured button
+          // reference would otherwise go stale the moment anything else
+          // rebuilds the mount mid-batch
+          const multiBtn = mkBtn(
+            batchProgress ? ('กำลังอัปโหลด ' + batchProgress.current + '/' + batchProgress.total + '...') : '+ เพิ่มรูปหลายรูปพร้อมกัน',
+            openMultiUpload
+          );
           multiBtn.className = 'btn-add';
+          multiBtn.disabled = !!batchProgress;
           addRow.appendChild(multiBtn);
         }
         mount.appendChild(addRow);
       }
     }
 
-    function openMultiUpload(btn) {
+    let batchProgress = null; // { current, total } while a multi-upload batch is running, else null
+
+    function openMultiUpload() {
       const input = document.createElement('input');
       input.type = 'file';
       input.accept = 'image/*';
@@ -366,13 +378,10 @@
       input.addEventListener('change', async () => {
         const files = Array.from(input.files);
         if (!files.length) return;
-        // render() rebuilds the whole mount (including this add-row), which
-        // would detach `btn` and silently strand the progress text on an
-        // orphaned element — so render() is only called once, after the
-        // whole batch settles, not per file
-        btn.disabled = true;
+        let succeeded = 0;
         for (let i = 0; i < files.length; i++) {
-          btn.textContent = 'กำลังอัปโหลด ' + (i + 1) + '/' + files.length + '...';
+          batchProgress = { current: i + 1, total: files.length };
+          render();
           const file = files[i];
           const imageBase64 = await fileToBase64(file);
           const result = await callBackend(collection, {
@@ -386,8 +395,17 @@
           // spam one alert per remaining file with a pin/network problem that
           // isn't going to fix itself mid-batch
           items = result.items;
+          succeeded++;
         }
+        batchProgress = null;
         render();
+        // files already-saved before a mid-batch failure must be reported —
+        // otherwise the owner reads the failure alert as "nothing saved",
+        // re-selects all the same files, and duplicates the ones that
+        // actually succeeded (each 'add' always creates a new item)
+        if (succeeded < files.length) {
+          window.alert('อัปโหลดสำเร็จ ' + succeeded + ' จาก ' + files.length + ' รูป — เลือกเฉพาะรูปที่เหลือแล้วลองใหม่อีกครั้ง');
+        }
       });
       input.click();
     }
