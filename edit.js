@@ -344,11 +344,52 @@
       }
 
       if (editing) {
+        const addRow = document.createElement('div');
+        addRow.style.cssText = 'display:flex;gap:10px;flex-wrap:wrap;margin-top:16px;';
         const addBtn = mkBtn(addLabel, () => openForm(null));
         addBtn.className = 'btn-add';
-        addBtn.style.marginTop = '16px';
-        mount.appendChild(addBtn);
+        addRow.appendChild(addBtn);
+        if (photoMode !== 'none') {
+          const multiBtn = mkBtn('+ เพิ่มรูปหลายรูปพร้อมกัน', () => openMultiUpload(multiBtn));
+          multiBtn.className = 'btn-add';
+          addRow.appendChild(multiBtn);
+        }
+        mount.appendChild(addRow);
       }
+    }
+
+    function openMultiUpload(btn) {
+      const input = document.createElement('input');
+      input.type = 'file';
+      input.accept = 'image/*';
+      input.multiple = true;
+      input.addEventListener('change', async () => {
+        const files = Array.from(input.files);
+        if (!files.length) return;
+        // render() rebuilds the whole mount (including this add-row), which
+        // would detach `btn` and silently strand the progress text on an
+        // orphaned element — so render() is only called once, after the
+        // whole batch settles, not per file
+        btn.disabled = true;
+        for (let i = 0; i < files.length; i++) {
+          btn.textContent = 'กำลังอัปโหลด ' + (i + 1) + '/' + files.length + '...';
+          const file = files[i];
+          const imageBase64 = await fileToBase64(file);
+          const result = await callBackend(collection, {
+            action: 'add',
+            fields: {},
+            imageBase64: imageBase64,
+            imageName: file.name,
+            imageType: file.type,
+          });
+          if (!result) break; // callBackend already alerted; stop rather than
+          // spam one alert per remaining file with a pin/network problem that
+          // isn't going to fix itself mid-batch
+          items = result.items;
+        }
+        render();
+      });
+      input.click();
     }
 
     async function move(idx, dir, arr) {
