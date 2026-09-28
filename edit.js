@@ -54,11 +54,47 @@
     document.body.appendChild(btn);
   }
 
+  // phone photos routinely come in at 3000-4000px / several MB — the site
+  // never displays anything close to that size, and every upload has to
+  // travel browser -> Apps Script -> GitHub (two full hops of whatever size
+  // we send), so resize+recompress client-side before it ever leaves the
+  // browser. Always re-encodes to JPEG regardless of input format, so the
+  // returned name/type must be used instead of the original file's.
+  const MAX_UPLOAD_DIMENSION = 1600;
+  const UPLOAD_JPEG_QUALITY = 0.85;
+
   function fileToBase64(file) {
     return new Promise((resolve, reject) => {
       const reader = new FileReader();
-      reader.onload = () => resolve(reader.result.split(',')[1]);
       reader.onerror = reject;
+      reader.onload = () => {
+        const rawBase64 = reader.result.split(',')[1];
+        const fallback = () => resolve({ base64: rawBase64, name: file.name, type: file.type });
+        const img = new Image();
+        img.onerror = fallback; // e.g. a HEIC the browser can't decode into <img>
+        img.onload = () => {
+          try {
+            let { width, height } = img;
+            if (width > MAX_UPLOAD_DIMENSION || height > MAX_UPLOAD_DIMENSION) {
+              if (width >= height) { height = Math.round(height * MAX_UPLOAD_DIMENSION / width); width = MAX_UPLOAD_DIMENSION; }
+              else { width = Math.round(width * MAX_UPLOAD_DIMENSION / height); height = MAX_UPLOAD_DIMENSION; }
+            }
+            const canvas = document.createElement('canvas');
+            canvas.width = width;
+            canvas.height = height;
+            canvas.getContext('2d').drawImage(img, 0, 0, width, height);
+            const dataUrl = canvas.toDataURL('image/jpeg', UPLOAD_JPEG_QUALITY);
+            resolve({
+              base64: dataUrl.split(',')[1],
+              name: (file.name || 'photo').replace(/\.[^.]+$/, '') + '.jpg',
+              type: 'image/jpeg',
+            });
+          } catch (e) {
+            fallback(); // canvas unavailable/tainted — upload the original instead of failing
+          }
+        };
+        img.src = reader.result;
+      };
       reader.readAsDataURL(file);
     });
   }
@@ -383,13 +419,13 @@
           batchProgress = { current: i + 1, total: files.length };
           render();
           const file = files[i];
-          const imageBase64 = await fileToBase64(file);
+          const encoded = await fileToBase64(file);
           const result = await callBackend(collection, {
             action: 'add',
             fields: {},
-            imageBase64: imageBase64,
-            imageName: file.name,
-            imageType: file.type,
+            imageBase64: encoded.base64,
+            imageName: encoded.name,
+            imageType: encoded.type,
           });
           if (!result) break; // callBackend already alerted; stop rather than
           // spam one alert per remaining file with a pin/network problem that
@@ -480,9 +516,10 @@
         const payload = { action: item ? 'update' : 'add', fields: payloadFields };
         if (item) payload.id = item.id;
         if (fileInput && fileInput.files[0]) {
-          payload.imageBase64 = await fileToBase64(fileInput.files[0]);
-          payload.imageName = fileInput.files[0].name;
-          payload.imageType = fileInput.files[0].type;
+          const encoded = await fileToBase64(fileInput.files[0]);
+          payload.imageBase64 = encoded.base64;
+          payload.imageName = encoded.name;
+          payload.imageType = encoded.type;
         }
         const result = await callBackend(collection, payload);
         if (result) { items = result.items; render(); overlay.remove(); }
@@ -638,9 +675,10 @@
         };
         if (item) payload.id = item.id;
         if (fileInput && fileInput.files[0]) {
-          payload.imageBase64 = await fileToBase64(fileInput.files[0]);
-          payload.imageName = fileInput.files[0].name;
-          payload.imageType = fileInput.files[0].type;
+          const encoded = await fileToBase64(fileInput.files[0]);
+          payload.imageBase64 = encoded.base64;
+          payload.imageName = encoded.name;
+          payload.imageType = encoded.type;
         }
         const result = await callBackend(collection, payload);
         if (result) { items = result.items; render(); overlay.remove(); }
@@ -711,14 +749,14 @@
         const file = input.files[0];
         if (!file) return;
         const id = el.dataset.editImg;
-        const imageBase64 = await fileToBase64(file);
+        const encoded = await fileToBase64(file);
         const result = await callBackend(collection, {
           action: 'update',
           id: id,
           fields: {},
-          imageBase64: imageBase64,
-          imageName: file.name,
-          imageType: file.type,
+          imageBase64: encoded.base64,
+          imageName: encoded.name,
+          imageType: encoded.type,
         });
         if (!result) return;
         const item = result.items.filter((x) => x.id === id)[0];
