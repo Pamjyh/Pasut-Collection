@@ -241,12 +241,14 @@
   }
 
   function renderPhotoStrip(urls, altBase) {
+    // callers always pass urls.slice(1) (the primary photo is shown
+    // separately), so the first strip photo is overall photo #2, not #1
     const strip = document.createElement('div');
     strip.className = 'photo-strip';
     urls.forEach((url, i) => {
       const img = document.createElement('img');
       img.src = url;
-      img.alt = altBase ? altBase + ' ' + (i + 1) : '';
+      img.alt = altBase ? altBase + ' ' + (i + 2) : '';
       strip.appendChild(img);
     });
     return strip;
@@ -514,9 +516,38 @@
       });
 
       let fileInput = null;
+      // photos already attached to this item beyond the primary .url — a
+      // mutable copy so "×" here only takes effect once "บันทึก" is pressed,
+      // same as every other field in this form
+      let currentExtraUrls = (item && Array.isArray(item.urls)) ? item.urls.slice() : [];
+      let existingStrip = null;
+      function renderExistingStrip() {
+        if (!existingStrip) return;
+        existingStrip.innerHTML = '';
+        currentExtraUrls.forEach((url, i) => {
+          const wrap = document.createElement('div');
+          wrap.style.cssText = 'position:relative;display:inline-block;';
+          const img = document.createElement('img');
+          img.src = url;
+          img.style.cssText = 'width:56px;height:56px;object-fit:cover;border-radius:6px;border:1px solid var(--hairline);display:block;';
+          const rm = mkBtn('×', () => { currentExtraUrls.splice(i, 1); renderExistingStrip(); });
+          rm.style.cssText = 'position:absolute;top:-6px;right:-6px;width:20px;height:20px;line-height:1;padding:0;border-radius:50%;';
+          wrap.append(img, rm);
+          existingStrip.appendChild(wrap);
+        });
+      }
       if (photoMode !== 'none') {
+        if (currentExtraUrls.length) {
+          const existingLabel = document.createElement('label');
+          existingLabel.textContent = 'รูปที่แนบไว้แล้ว (กด × เพื่อลบ)';
+          existingStrip = document.createElement('div');
+          existingStrip.style.cssText = 'display:flex;gap:8px;flex-wrap:wrap;';
+          existingLabel.appendChild(existingStrip);
+          modal.appendChild(existingLabel);
+          renderExistingStrip();
+        }
         const photoLabel = document.createElement('label');
-        photoLabel.textContent = 'รูปภาพ (เลือกได้หลายรูป, เว้นว่างได้ถ้าไม่เปลี่ยน)';
+        photoLabel.textContent = 'เพิ่มรูปใหม่ (เลือกได้หลายรูป, เว้นว่างได้ถ้าไม่เพิ่ม)';
         fileInput = document.createElement('input');
         fileInput.type = 'file';
         fileInput.accept = 'image/*';
@@ -542,6 +573,13 @@
           }
         });
         const files = (fileInput && fileInput.files.length) ? Array.from(fileInput.files) : [];
+        // a removed extra photo (via the × buttons above) with no new upload
+        // needs its own explicit urls write — otherwise nothing in this
+        // payload would ever mention urls, and the removal is silently lost
+        const originalExtraLen = (item && Array.isArray(item.urls)) ? item.urls.length : 0;
+        if (item && !files[0] && currentExtraUrls.length !== originalExtraLen) {
+          payloadFields.urls = currentExtraUrls;
+        }
         const payload = { action: item ? 'update' : 'add', fields: payloadFields };
         if (item) payload.id = item.id;
         if (files[0]) {
@@ -550,13 +588,12 @@
           payload.imageName = encoded.name;
           payload.imageType = encoded.type;
           // editing an item that already has a photo: this upload is about to
-          // overwrite .url server-side, so archive the current .url (plus any
-          // already-archived ones) into .urls first — otherwise the item's
-          // existing photo is silently discarded instead of kept alongside
-          // the new one
+          // overwrite .url server-side, so archive the current .url (on top of
+          // whatever survived the × removals above) into .urls first —
+          // otherwise the item's existing photo is silently discarded instead
+          // of kept alongside the new one
           if (item && item.url) {
-            const existingUrls = Array.isArray(item.urls) ? item.urls : [];
-            payloadFields.urls = existingUrls.concat([item.url]);
+            payloadFields.urls = currentExtraUrls.concat([item.url]);
           }
         }
         let result = await callBackend(collection, payload);
@@ -570,6 +607,7 @@
         // (unchanged, generic behavior), so push the PRIOR .url onto .urls
         // before every additional upload — after N uploads .urls holds every
         // photo except the newest, which stays on .url; see getPhotoUrls()
+        let uploadedExtra = 0;
         for (let i = 1; i < files.length && savedItem; i++) {
           saveBtn.textContent = 'กำลังอัปโหลดรูปที่ ' + (i + 1) + '/' + files.length + '...';
           const encoded = await fileToBase64(files[i]);
@@ -586,6 +624,13 @@
           if (!r2) break; // callBackend already alerted; keep what already saved
           items = r2.items;
           savedItem = items.find((x) => x.id === savedItem.id);
+          uploadedExtra++;
+        }
+        // callBackend's own alert only explains WHY a follow-up call failed,
+        // not that photos beyond it never got attached — without this the
+        // owner has no way to tell the save was only partly successful
+        if (files.length > 1 && uploadedExtra < files.length - 1) {
+          window.alert('บันทึกรูปสำเร็จบางส่วน (' + (uploadedExtra + 1) + ' จาก ' + files.length + ' รูป) — เลือกเฉพาะรูปที่เหลือแล้วกดแก้ไขอีกครั้ง');
         }
         render();
         overlay.remove();
