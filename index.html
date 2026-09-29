@@ -12,14 +12,23 @@
 <div class="topbar">
   <div class="wrap row">
     <a class="brand" href="index.html"><span class="mark">P</span> <span data-field="name">Pasut Collection</span></a>
-    <nav class="crumbs">
-      <a href="personal.html">ข้อมูลส่วนตัว</a>
-      <a href="teaching.html">ข้อมูลการสอน</a>
-      <a href="pa.html">ผลการปฏิบัติงาน PA</a>
-      <a href="gallery.html">ประมวลภาพกิจกรรม</a>
-      <a href="media.html">สื่อนวัตกรรม</a>
-      <a href="orders.html">คำสั่งมอบหมายงาน</a>
-    </nav>
+    <div class="topbar-right">
+      <nav class="crumbs">
+        <a href="personal.html">ข้อมูลส่วนตัว</a>
+        <a href="teaching.html">ข้อมูลการสอน</a>
+        <a href="pa.html">ผลการปฏิบัติงาน PA</a>
+        <a href="gallery.html">ประมวลภาพกิจกรรม</a>
+        <a href="media.html">สื่อนวัตกรรม</a>
+        <a href="orders.html">คำสั่งมอบหมายงาน</a>
+      </nav>
+      <div class="qr-widget">
+        <button id="qrToggleBtn" class="qr-toggle" type="button" aria-expanded="false">QR โค้ด</button>
+        <div id="qrPanel" class="qr-panel" hidden>
+          <div id="qrCode"></div>
+          <p class="qr-url"></p>
+        </div>
+      </div>
+    </div>
   </div>
 </div>
 
@@ -98,5 +107,26 @@
 
 <script src="config.js"></script>
 <script src="edit.js"></script>
+<script src="qrcode.min.js"></script>
+<script>
+(function () {
+  var SITE_URL = 'https://pamjyh.github.io/Pasut-Collection/';
+  var btn = document.getElementById('qrToggleBtn');
+  var panel = document.getElementById('qrPanel');
+  var made = false;
+  btn.addEventListener('click', function () {
+    var willShow = panel.hidden;
+    if (willShow && !made) {
+      new QRCode(document.getElementById('qrCode'), {
+        text: SITE_URL, width: 160, height: 160, correctLevel: QRCode.CorrectLevel.M,
+      });
+      panel.querySelector('.qr-url').textContent = SITE_URL;
+      made = true;
+    }
+    panel.hidden = !willShow;
+    btn.setAttribute('aria-expanded', String(willShow));
+  });
+})();
+</script>
 </body>
 </html>

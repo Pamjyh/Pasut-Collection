@@ -246,6 +246,24 @@ section .intro{ color:var(--ink-muted); max-width:68ch; margin-bottom:28px; font
 .photo-strip img{ width:56px; height:56px; object-fit:cover; border-radius:6px; border:1px solid var(--hairline); display:block; }
 .sub figure .photo-strip{ padding:8px 0 0; }
 
+/* ---------- QR code button (index.html only) ---------- */
+.topbar-right{ display:flex; align-items:center; gap:14px; flex-wrap:wrap; }
+.qr-widget{ position:relative; }
+.qr-toggle{
+  font-family:'Sarabun',sans-serif; font-size:13px; font-weight:600;
+  padding:8px 14px; border-radius:var(--radius-full); border:none; color:#fff;
+  background:var(--primary); box-shadow:var(--shadow-1); cursor:pointer;
+}
+.qr-panel{
+  position:absolute; top:calc(100% + 10px); right:0;
+  z-index:41; background:var(--surface); border-radius:var(--radius-md);
+  box-shadow:var(--shadow-2); padding:16px; text-align:center;
+}
+.qr-panel[hidden]{ display:none; }
+.qr-panel #qrCode{ display:flex; justify-content:center; }
+.qr-panel #qrCode img, .qr-panel #qrCode canvas{ display:block; }
+.qr-panel .qr-url{ margin:10px 0 0; font-size:12px; color:var(--ink-muted); overflow-wrap:break-word; width:160px; }
+
 /* ---------- self-editing (edit.js) ---------- */
 .edit-toggle{
   position:fixed; right:16px; bottom:calc(16px + env(safe-area-inset-bottom,0px));
