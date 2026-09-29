@@ -241,6 +241,11 @@ section .intro{ color:var(--ink-muted); max-width:68ch; margin-bottom:28px; font
 .gcard .cap{ font-size:13px; color:var(--ink-muted); white-space:pre-line; }
 .empty-note{ color:var(--ink-faint); font-size:14px; text-align:center; padding:32px 0; border:1px dashed var(--hairline); border-radius:var(--radius-md); }
 
+/* extra photos on an item beyond the first (gcard/indicator figure) */
+.photo-strip{ display:flex; gap:6px; padding:8px; flex-wrap:wrap; }
+.photo-strip img{ width:56px; height:56px; object-fit:cover; border-radius:6px; border:1px solid var(--hairline); display:block; }
+.sub figure .photo-strip{ padding:8px 0 0; }
+
 /* ---------- self-editing (edit.js) ---------- */
 .edit-toggle{
   position:fixed; right:16px; bottom:calc(16px + env(safe-area-inset-bottom,0px));

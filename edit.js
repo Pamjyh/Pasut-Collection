@@ -229,19 +229,44 @@
      teaching, all sharing one add/edit/delete/reorder engine. data-render on
      the mount picks how each item is drawn; data-photo="none" hides the
      photo upload UI entirely for renderModes that have no image ---------- */
+  // items store at most one photo directly on .url (unchanged, so every
+  // existing item/renderer/upload call keeps working untouched); any EXTRA
+  // photos beyond that one live in .urls. Whenever a later photo is
+  // uploaded, the caller pushes the item's then-current .url onto .urls
+  // before overwriting .url with the new one — see openForm's save handler.
+  function getPhotoUrls(item) {
+    const urls = Array.isArray(item.urls) ? item.urls.filter(Boolean) : [];
+    if (item.url) urls.push(item.url);
+    return urls;
+  }
+
+  function renderPhotoStrip(urls, altBase) {
+    const strip = document.createElement('div');
+    strip.className = 'photo-strip';
+    urls.forEach((url, i) => {
+      const img = document.createElement('img');
+      img.src = url;
+      img.alt = altBase ? altBase + ' ' + (i + 1) : '';
+      strip.appendChild(img);
+    });
+    return strip;
+  }
+
   const RENDERERS = {
     cards(item) {
       const card = document.createElement('div');
       card.className = 'gcard';
+      const urls = getPhotoUrls(item);
       const photo = document.createElement('div');
       photo.className = 'photo';
-      if (item.url) {
+      if (urls[0]) {
         const img = document.createElement('img');
-        img.src = item.url;
+        img.src = urls[0];
         img.alt = item.caption || item.title || '';
         photo.appendChild(img);
       }
       card.appendChild(photo);
+      if (urls.length > 1) card.appendChild(renderPhotoStrip(urls.slice(1), item.title || item.caption));
       const body = document.createElement('div');
       body.className = 'body';
       if (item.title) { const t = document.createElement('div'); t.className = 'title'; t.textContent = item.title; body.appendChild(t); }
@@ -252,18 +277,20 @@
       return card;
     },
     indicator(item) {
+      const urls = getPhotoUrls(item);
       const sub = document.createElement('div');
-      sub.className = item.url ? 'sub with-image' : 'sub';
+      sub.className = urls.length ? 'sub with-image' : 'sub';
       const left = document.createElement('div');
       if (item.tag) { const tag = document.createElement('div'); tag.className = 'tag'; tag.textContent = item.tag; left.appendChild(tag); }
       const h3 = document.createElement('h3'); h3.textContent = item.title || ''; left.appendChild(h3);
       const p = document.createElement('p'); p.textContent = item.desc || ''; left.appendChild(p);
       sub.appendChild(left);
-      if (item.url) {
+      if (urls.length) {
         const figure = document.createElement('figure');
-        const img = document.createElement('img'); img.src = item.url; img.alt = item.title || '';
+        const img = document.createElement('img'); img.src = urls[0]; img.alt = item.title || '';
         figure.appendChild(img);
         if (item.caption) { const cap = document.createElement('figcaption'); cap.textContent = item.caption; figure.appendChild(cap); }
+        if (urls.length > 1) figure.appendChild(renderPhotoStrip(urls.slice(1), item.title));
         sub.appendChild(figure);
       }
       return sub;
@@ -489,10 +516,11 @@
       let fileInput = null;
       if (photoMode !== 'none') {
         const photoLabel = document.createElement('label');
-        photoLabel.textContent = 'รูปภาพ (เว้นว่างได้ถ้าไม่เปลี่ยน)';
+        photoLabel.textContent = 'รูปภาพ (เลือกได้หลายรูป, เว้นว่างได้ถ้าไม่เปลี่ยน)';
         fileInput = document.createElement('input');
         fileInput.type = 'file';
         fileInput.accept = 'image/*';
+        fileInput.multiple = true;
         photoLabel.appendChild(fileInput);
         modal.appendChild(photoLabel);
       }
@@ -513,17 +541,54 @@
             payloadFields[f.key] = inputs[f.key].value.trim();
           }
         });
+        const files = (fileInput && fileInput.files.length) ? Array.from(fileInput.files) : [];
         const payload = { action: item ? 'update' : 'add', fields: payloadFields };
         if (item) payload.id = item.id;
-        if (fileInput && fileInput.files[0]) {
-          const encoded = await fileToBase64(fileInput.files[0]);
+        if (files[0]) {
+          const encoded = await fileToBase64(files[0]);
           payload.imageBase64 = encoded.base64;
           payload.imageName = encoded.name;
           payload.imageType = encoded.type;
+          // editing an item that already has a photo: this upload is about to
+          // overwrite .url server-side, so archive the current .url (plus any
+          // already-archived ones) into .urls first — otherwise the item's
+          // existing photo is silently discarded instead of kept alongside
+          // the new one
+          if (item && item.url) {
+            const existingUrls = Array.isArray(item.urls) ? item.urls : [];
+            payloadFields.urls = existingUrls.concat([item.url]);
+          }
         }
-        const result = await callBackend(collection, payload);
-        if (result) { items = result.items; render(); overlay.remove(); }
-        else { saveBtn.disabled = false; saveBtn.textContent = 'บันทึก'; }
+        let result = await callBackend(collection, payload);
+        if (!result) { saveBtn.disabled = false; saveBtn.textContent = 'บันทึก'; return; }
+        items = result.items;
+        // the just-created/updated item — for a brand new item this is
+        // whichever one wasn't there before ('add' always appends, so it's
+        // the last element of the freshly-returned array)
+        let savedItem = item ? items.find((x) => x.id === item.id) : items[items.length - 1];
+        // any files beyond the first: each upload overwrites .url server-side
+        // (unchanged, generic behavior), so push the PRIOR .url onto .urls
+        // before every additional upload — after N uploads .urls holds every
+        // photo except the newest, which stays on .url; see getPhotoUrls()
+        for (let i = 1; i < files.length && savedItem; i++) {
+          saveBtn.textContent = 'กำลังอัปโหลดรูปที่ ' + (i + 1) + '/' + files.length + '...';
+          const encoded = await fileToBase64(files[i]);
+          const priorUrls = Array.isArray(savedItem.urls) ? savedItem.urls : [];
+          const mergedUrls = savedItem.url ? priorUrls.concat([savedItem.url]) : priorUrls;
+          const r2 = await callBackend(collection, {
+            action: 'update',
+            id: savedItem.id,
+            fields: { urls: mergedUrls },
+            imageBase64: encoded.base64,
+            imageName: encoded.name,
+            imageType: encoded.type,
+          });
+          if (!r2) break; // callBackend already alerted; keep what already saved
+          items = r2.items;
+          savedItem = items.find((x) => x.id === savedItem.id);
+        }
+        render();
+        overlay.remove();
       });
       saveBtn.className = 'btn-add';
       const cancelBtn = mkBtn('ยกเลิก', () => overlay.remove());
